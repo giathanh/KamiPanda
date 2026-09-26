@@ -7,6 +7,7 @@ import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import { formatState, insertLink, toggleInline, type FormatState } from "../editor/formatting";
 import { livePreview, livePreviewAttrs } from "../editor/livePreview";
+import { cellTypingEvent, tablePreview } from "../editor/table";
 import { editorHighlight, editorTheme } from "../editor/theme";
 
 export type EditorMode = "live" | "source";
@@ -24,14 +25,15 @@ const modeCompartment = new Compartment();
 const states = new Map<string, EditorState>();
 
 function modeExtension(mode: EditorMode) {
-  return mode === "live" ? [livePreview, livePreviewAttrs] : [];
+  return mode === "live" ? [livePreview, tablePreview, livePreviewAttrs] : [];
 }
 
 function createState(doc: string) {
   return EditorState.create({
     doc,
     extensions: [
-      history(),
+      // Typing in a table cell re-pads the whole column, so those edits are never adjacent; group them anyway.
+      history({ joinToEvent: (tr, adjacent) => adjacent || tr.isUserEvent(cellTypingEvent) }),
       drawSelection(),
       EditorView.lineWrapping,
       markdown({ base: markdownLanguage, codeLanguages: languages }),
