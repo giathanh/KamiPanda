@@ -1,0 +1,140 @@
+@import "@fontsource-variable/roboto-flex";
+@import "@fontsource-variable/newsreader";
+@import "@fontsource-variable/newsreader/wght-italic.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+/* Material 3 color roles, teal seed (from docs/design/markdown_editor.html). */
+:root {
+  --font-ui: "Roboto Flex Variable", system-ui, -apple-system, sans-serif;
+  --font-doc: "Newsreader Variable", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --md-surface: #f4fbf8;
+  --md-surface-lowest: #ffffff;
+  --md-surface-low: #eff5f2;
+  --md-surface-container: #e9efec;
+  --md-surface-high: #e3eae7;
+  --md-on-surface: #161d1b;
+  --md-on-surface-variant: #3f4947;
+  --md-outline: #6f7977;
+  --md-outline-variant: #bec9c6;
+  --md-primary: #006a60;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #9ef2e4;
+  --md-on-primary-container: #00201c;
+  --md-secondary-container: #cce8e2;
+  --md-on-secondary-container: #051f1c;
+  --md-tertiary: #456179;
+  --md-error: #ba1a1a;
+  --md-shadow: 22, 29, 27;
+
+  /* Syntax colors for fenced code blocks. */
+  --code-keyword: #a626a4;
+  --code-string: #50a14f;
+  --code-number: #b76b01;
+  --code-comment: #8a9391;
+  --code-function: #4078f2;
+  --code-type: #c18401;
+  --code-property: #0184bc;
+  --code-variable: #e45649;
+  --code-operator: #5c6a67;
+  --code-tag: #e45649;
+  --code-attribute: #b76b01;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --md-surface: #0e1513;
+  --md-surface-lowest: #161d1b;
+  --md-surface-low: #1a2120;
+  --md-surface-container: #252b2a;
+  --md-surface-high: #2f3634;
+  --md-on-surface: #dde4e1;
+  --md-on-surface-variant: #bec9c6;
+  --md-outline: #899390;
+  --md-outline-variant: #3f4947;
+  --md-primary: #82d5c8;
+  --md-on-primary: #003731;
+  --md-primary-container: #005048;
+  --md-on-primary-container: #9ef2e4;
+  --md-secondary-container: #334b47;
+  --md-on-secondary-container: #cce8e2;
+  --md-tertiary: #b4cad6;
+  --md-error: #f2b8b5;
+  --md-shadow: 0, 0, 0;
+
+  --code-keyword: #c678dd;
+  --code-string: #98c379;
+  --code-number: #d19a66;
+  --code-comment: #7f8a88;
+  --code-function: #61afef;
+  --code-type: #e5c07b;
+  --code-property: #56b6c2;
+  --code-variable: #e06c75;
+  --code-operator: #abb2bf;
+  --code-tag: #e06c75;
+  --code-attribute: #d19a66;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* Standard M3 icon button: 40px circle with a hover state layer. */
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  color: var(--md-on-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s;
+}
+
+.icon-btn:hover {
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+}
+
+.icon-btn.lg {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+}
