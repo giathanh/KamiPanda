@@ -33,6 +33,8 @@ const icons: Record<string, IconDef> = {
   copy: { paths: ["M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"], rects: [[8, 8, 12, 12, 2]] },
   quote: { paths: ["M7 7h4v4H7zM7 11c0 3-1 5-3 6M15 7h4v4h-4zM15 11c0 3-1 5-3 6"] },
   divider: { paths: ["M4 12h16"] },
+  close: { paths: ["M6 6l12 12M18 6L6 18"] },
+  reset: { paths: ["M4 12a8 8 0 1 0 2.34-5.66L4 8.5", "M4 4v4.5h4.5"] },
 };
 
 const props = withDefaults(defineProps<{ name: string; size?: number; strokeWidth?: number }>(), {

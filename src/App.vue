@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { EditorSelection } from "@codemirror/state";
 import { marked } from "marked";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import FileTree from "./components/FileTree.vue";
 import FormatToolbar from "./components/FormatToolbar.vue";
 import Icon from "./components/Icon.vue";
 import MarkdownEditor from "./components/MarkdownEditor.vue";
+import SettingsView from "./components/SettingsView.vue";
+import { resolvedMode, settings } from "./data/settings";
 import { activeFile, activeFolder, createFile, isDirty, saveActive, tree } from "./data/workspace";
 import type { FormatState } from "./editor/formatting";
 
@@ -16,7 +18,8 @@ const mode = ref<ViewMode>("live");
 const panel = ref<Panel>("files");
 const sidebarOpen = ref(true);
 const focusMode = ref(false);
-const dark = ref(false);
+const settingsOpen = ref(false);
+const dark = computed(() => resolvedMode.value === "dark");
 const editor = ref<InstanceType<typeof MarkdownEditor>>();
 const format = ref<FormatState>({ bold: false, italic: false, code: false, strike: false, link: false, block: "p" });
 
@@ -32,8 +35,6 @@ const railItems: { id: Panel; label: string; icon: string }[] = [
   { id: "search", label: "Search", icon: "search" },
   { id: "history", label: "History", icon: "history" },
 ];
-
-watch(dark, (on) => (document.documentElement.dataset.theme = on ? "dark" : "light"), { immediate: true });
 
 const words = computed(() => {
   const text = activeFile.value.content.replace(/```[\s\S]*?```/g, " ").replace(/[#>*_`~\-[\]()!|]/g, " ");
@@ -63,6 +64,7 @@ function jumpToLine(n: number) {
 }
 
 function selectPanel(id: Panel) {
+  settingsOpen.value = false;
   if (panel.value === id) sidebarOpen.value = !sidebarOpen.value;
   else {
     panel.value = id;
@@ -89,6 +91,11 @@ function onKey(e: KeyboardEvent) {
   } else if (mod && e.shiftKey && e.key.toLowerCase() === "f") {
     e.preventDefault();
     focusMode.value = !focusMode.value;
+  } else if (mod && e.key === ",") {
+    e.preventDefault();
+    settingsOpen.value = !settingsOpen.value;
+  } else if (e.key === "Escape" && settingsOpen.value) {
+    settingsOpen.value = false;
   } else if (e.key === "Escape" && focusMode.value) {
     focusMode.value = false;
   }
@@ -122,10 +129,17 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         </button>
       </div>
       <div class="grow" data-tauri-drag-region />
-      <button class="icon-btn lg" :aria-label="dark ? 'Switch to light theme' : 'Switch to dark theme'" @click="dark = !dark">
+      <button class="icon-btn lg" :aria-label="dark ? 'Switch to light theme' : 'Switch to dark theme'" @click="settings.theme = dark ? 'light' : 'dark'">
         <Icon :name="dark ? 'sun' : 'moon'" :size="22" />
       </button>
-      <button class="icon-btn lg" aria-label="Settings" title="Settings">
+      <button
+        class="icon-btn lg"
+        :class="{ active: settingsOpen }"
+        aria-label="Settings"
+        title="Settings (⌘,)"
+        :aria-pressed="settingsOpen"
+        @click="settingsOpen = !settingsOpen"
+      >
         <Icon name="sliders" :size="22" />
       </button>
     </nav>
@@ -165,7 +179,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
     </aside>
 
     <!-- Editor pane -->
-    <main class="pane">
+    <main v-if="settingsOpen && !focusMode" class="pane">
+      <SettingsView @close="settingsOpen = false" />
+    </main>
+
+    <main v-show="!settingsOpen || focusMode" class="pane">
       <header class="pane-header" data-tauri-drag-region>
         <div class="breadcrumb" data-tauri-drag-region>
           <template v-if="activeFolder">
@@ -234,6 +252,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 
 .grow {
   flex-grow: 1;
+}
+
+.icon-btn.active {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
 }
 
 .muted {
