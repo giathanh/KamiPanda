@@ -2,6 +2,7 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, type EditorState } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
+import { focusTableCell } from "./table";
 
 export type InlineKind = "bold" | "italic" | "code" | "strike";
 export type BlockKind = "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -159,7 +160,7 @@ export function insertImage(view: EditorView) {
   });
 }
 
-/** Insert a block on its own lines below the cursor's line and select `selectFrom..selectTo` inside it. */
+/** Insert a block on its own lines below the cursor's line and select `selectFrom..selectTo` inside it. Returns the block's start. */
 function insertBlock(view: EditorView, block: string, select: [number, number]) {
   const { state } = view;
   const line = state.doc.lineAt(state.selection.main.head);
@@ -172,22 +173,28 @@ function insertBlock(view: EditorView, block: string, select: [number, number]) 
     userEvent: "input.format",
   });
   view.focus();
-  return true;
+  return at + lead.length;
 }
 
 export function insertTable(view: EditorView) {
   const table = "| Column | Column |\n| ------ | ------ |\n| Cell   | Cell   |";
-  return insertBlock(view, table, [2, 8]);
+  const start = insertBlock(view, table, [2, 8]);
+  // In live preview the table renders as a grid: start typing in its first header cell.
+  focusTableCell(view, start);
+  return true;
 }
 
 export function insertCodeBlock(view: EditorView) {
-  return insertBlock(view, "```text\n\n```", [8, 8]);
+  insertBlock(view, "```text\n\n```", [8, 8]);
+  return true;
 }
 
 export function insertQuote(view: EditorView) {
-  return insertBlock(view, "> Quote", [2, 7]);
+  insertBlock(view, "> Quote", [2, 7]);
+  return true;
 }
 
 export function insertDivider(view: EditorView) {
-  return insertBlock(view, "---\n", [4, 4]);
+  insertBlock(view, "---\n", [4, 4]);
+  return true;
 }

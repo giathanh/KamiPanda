@@ -98,18 +98,6 @@ function startRename() {
   renamingId.value = activeFile.value.id;
 }
 
-function exportHtml() {
-  const f = activeFile.value;
-  if (!f) return;
-  const body = marked.parse(f.content, { gfm: true }) as string;
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${f.name}</title></head><body>${body}</body></html>`;
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-  a.download = f.name.replace(/\.md$/, "") + ".html";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
 function onKey(e: KeyboardEvent) {
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === "s") {
@@ -249,7 +237,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           </button>
         </div>
         <div style="width: 8px" />
-        <button class="icon-btn" aria-label="Export" title="Export as HTML" @click="exportHtml"><Icon name="export" /></button>
         <button
           class="icon-btn"
           :aria-label="focusMode ? 'Exit focus mode' : 'Focus mode'"
@@ -259,7 +246,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         >
           <Icon name="focus" />
         </button>
-        <button class="icon-btn" aria-label="More options"><Icon name="more" /></button>
       </header>
 
       <div class="body" :class="{ split: mode === 'split' }">
