@@ -23,6 +23,7 @@
     "@lezer/highlight": "^1.2.4",
     "@lezer/markdown": "^1.7.2",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.7.3",
     "@tauri-apps/plugin-opener": "^2",
     "codemirror": "^6.0.2",
     "marked": "^18.0.14",

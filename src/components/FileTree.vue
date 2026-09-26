@@ -1,8 +1,22 @@
 <script setup lang="ts">
-import { activeId, isDirty, type TreeNode } from "../data/workspace";
+import { activeId, isDirty, renameFile, renamingId, selectFile, type DocFile, type TreeNode } from "../data/workspace";
 import Icon from "./Icon.vue";
 
 defineProps<{ nodes: TreeNode[]; depth?: number }>();
+
+/** Focuses the rename field and selects the name without its extension. */
+function focusInput(el: unknown) {
+  if (!(el instanceof HTMLInputElement) || document.activeElement === el) return;
+  el.focus();
+  el.setSelectionRange(0, el.value.replace(/\.(md|markdown)$/i, "").length);
+}
+
+function commit(node: DocFile, e: Event) {
+  // Enter commits and removes the input, which then fires blur; handle only once.
+  if (renamingId.value !== node.id) return;
+  renamingId.value = null;
+  renameFile(node, (e.target as HTMLInputElement).value);
+}
 </script>
 
 <template>
@@ -29,6 +43,25 @@ defineProps<{ nodes: TreeNode[]; depth?: number }>();
       <FileTree v-if="node.open && !node.assets" :nodes="node.children" :depth="(depth ?? 0) + 1" />
     </template>
 
+    <div
+      v-else-if="node.id === renamingId"
+      class="row"
+      :class="{ current: node.id === activeId }"
+      :style="{ paddingLeft: `${12 + (depth ?? 0) * 24}px` }"
+    >
+      <Icon name="file" :size="18" :class="node.id === activeId ? '' : 'muted'" />
+      <input
+        :ref="focusInput"
+        class="rename"
+        :value="node.name"
+        aria-label="File name"
+        spellcheck="false"
+        @keydown.enter.prevent="commit(node, $event)"
+        @keydown.esc.prevent.stop="renamingId = null"
+        @blur="commit(node, $event)"
+      />
+    </div>
+
     <button
       v-else
       class="row"
@@ -36,7 +69,10 @@ defineProps<{ nodes: TreeNode[]; depth?: number }>();
       :class="{ current: node.id === activeId }"
       :aria-current="node.id === activeId ? 'page' : undefined"
       :style="{ paddingLeft: `${12 + (depth ?? 0) * 24}px` }"
-      @click="activeId = node.id"
+      title="Double-click or press F2 to rename"
+      @click="selectFile(node)"
+      @dblclick="renamingId = node.id"
+      @keydown.f2.prevent="renamingId = node.id"
     >
       <Icon name="file" :size="18" :class="node.id === activeId ? '' : 'muted'" />
       <span class="file-name">{{ node.name }}</span>
@@ -77,6 +113,20 @@ defineProps<{ nodes: TreeNode[]; depth?: number }>();
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.rename {
+  flex-grow: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  margin-left: -4px;
+  border: 2px solid var(--md-primary);
+  border-radius: 8px;
+  background: var(--md-surface-lowest);
+  color: var(--md-on-surface);
+  font: inherit;
+  outline: none;
 }
 
 .current .file-name {
