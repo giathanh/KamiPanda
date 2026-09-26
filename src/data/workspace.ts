@@ -1,11 +1,16 @@
+import { invoke } from "@tauri-apps/api/core";
+import { ask, open } from "@tauri-apps/plugin-dialog";
 import { computed, reactive, ref } from "vue";
 
 export interface DocFile {
   kind: "file";
+  /** Absolute path on disk; doubles as the id. */
   id: string;
   name: string;
   content: string;
   savedContent: string;
+  /** Content is read from disk the first time the file is opened. */
+  loaded: boolean;
 }
 
 export interface Folder {
@@ -20,76 +25,17 @@ export interface Folder {
 
 export type TreeNode = DocFile | Folder;
 
-const WELCOME = `# Welcome to Marka
+type Entry =
+  | { kind: "file"; name: string; path: string }
+  | { kind: "folder"; name: string; path: string; children: Entry[] };
 
-Markdown that renders as you type. Syntax stays out of the way until your cursor needs it.
+const STORAGE_KEY = "kamipanda.workspace";
 
-## The basics
-
-Wrap a phrase in **double asterisks** to make it bold. The markers show only while the cursor is inside.
-
-- [x] Headings, lists and tables render inline
-- [x] Pasted images are copied into ./assets
-- [ ] Choose a theme in Settings → Appearance
-
-## Code blocks
-
-\`\`\`bash
-npm run build
-npm run package -- --mac --win
-\`\`\`
-
-> Tip: switch to *Source* mode to see every marker, or *Split* to compare with the rendered output.
-`;
-
-const ROADMAP = `# Q4 roadmap
-
-## Themes
-
-1. Faster startup on large workspaces
-2. Sync conflicts you can actually read
-3. Export to PDF and \`.docx\`
-
-## Open questions
-
-- [ ] Do we ship plugins in Q4 or Q1?
-- [ ] Who owns the [design system](https://m3.material.io)?
-
----
-
-*Last reviewed by the product team.*
-`;
-
-const CHECKLIST = `# Release checklist
-
-- [ ] Bump version in \`package.json\` and \`tauri.conf.json\`
-- [ ] Run \`npm run tauri build\` on macOS and Windows
-- [ ] Smoke-test **live editing**, *split view* and export
-- [ ] Write the changelog
-`;
-
-function file(id: string, name: string, content: string): DocFile {
-  return { kind: "file", id, name, content, savedContent: content };
-}
-
-export const tree = reactive<TreeNode[]>([
-  {
-    kind: "folder",
-    id: "product",
-    name: "Product",
-    open: true,
-    children: [
-      file("welcome", "Welcome.md", WELCOME),
-      // Starts with unsaved edits so the dirty indicator is visible, as in the design.
-      { ...file("roadmap", "Q4 roadmap.md", ROADMAP), savedContent: "" },
-      file("checklist", "Release checklist.md", CHECKLIST),
-      { kind: "folder", id: "assets", name: "assets", open: false, assets: true, children: [] },
-    ],
-  },
-  { kind: "folder", id: "journal", name: "Journal", open: false, children: [file("journal-1", "2026-09-25.md", "# Thursday\n\n")] },
-  { kind: "folder", id: "research", name: "Research", open: false, children: [] },
-  { kind: "folder", id: "archive", name: "Archive", open: false, children: [] },
-]);
+export const rootPath = ref<string | null>(null);
+export const rootName = computed(() => rootPath.value?.split(/[\\/]/).filter(Boolean).pop() ?? "");
+export const tree = reactive<TreeNode[]>([]);
+export const activeId = ref<string | null>(null);
+export const error = ref<string | null>(null);
 
 function findFile(nodes: TreeNode[], id: string): DocFile | undefined {
   for (const node of nodes) {
@@ -111,26 +57,141 @@ function findParent(nodes: TreeNode[], id: string, parent?: Folder): Folder | un
   }
 }
 
-export const activeId = ref("welcome");
-export const activeFile = computed(() => findFile(tree, activeId.value)!);
-export const activeFolder = computed(() => findParent(tree, activeId.value));
+function allFiles(nodes: TreeNode[]): DocFile[] {
+  return nodes.flatMap((n) => (n.kind === "file" ? [n] : allFiles(n.children)));
+}
+
+function allFolders(nodes: TreeNode[]): Folder[] {
+  return nodes.flatMap((n) => (n.kind === "folder" ? [n, ...allFolders(n.children)] : []));
+}
+
+export const activeFile = computed(() => (activeId.value ? findFile(tree, activeId.value) : undefined));
+export const activeFolder = computed(() => (activeId.value ? findParent(tree, activeId.value) : undefined));
 
 export function isDirty(f: DocFile) {
   return f.content !== f.savedContent;
 }
 
-export function saveActive() {
-  activeFile.value.savedContent = activeFile.value.content;
+export const hasUnsaved = computed(() => allFiles(tree).some(isDirty));
+
+/** Builds tree nodes from disk, keeping loaded content and open state of nodes that still exist. */
+function toNodes(entries: Entry[], prev: Map<string, TreeNode>): TreeNode[] {
+  return entries.map((e) => {
+    const old = prev.get(e.path);
+    if (e.kind === "file") {
+      if (old?.kind === "file") return { ...old, name: e.name };
+      return { kind: "file", id: e.path, name: e.name, content: "", savedContent: "", loaded: false };
+    }
+    const assets = e.name.toLowerCase() === "assets";
+    return {
+      kind: "folder",
+      id: e.path,
+      name: e.name,
+      open: old?.kind === "folder" ? old.open : false,
+      assets,
+      children: toNodes(e.children, prev),
+    };
+  });
 }
 
-let untitled = 0;
-export function createFile(folder?: Folder) {
-  const target = folder ?? activeFolder.value;
-  const siblings = target ? target.children : tree;
-  const name = untitled++ === 0 ? "Untitled.md" : `Untitled ${untitled}.md`;
-  const f = file(`new-${Date.now()}`, name, "# ");
-  f.savedContent = "";
-  siblings.push(f);
-  if (target) target.open = true;
+export async function refresh() {
+  if (!rootPath.value) return;
+  const entries = await invoke<Entry[]>("read_workspace", { root: rootPath.value });
+  const prev = new Map<string, TreeNode>([...allFiles(tree), ...allFolders(tree)].map((n) => [n.id, n]));
+  tree.splice(0, tree.length, ...toNodes(entries, prev));
+  if (activeId.value && !findFile(tree, activeId.value)) activeId.value = null;
+}
+
+async function load(path: string) {
+  const entries = await invoke<Entry[]>("read_workspace", { root: path });
+  rootPath.value = path;
+  activeId.value = null;
+  tree.splice(0, tree.length, ...toNodes(entries, new Map()));
+  localStorage.setItem(STORAGE_KEY, path);
+  error.value = null;
+}
+
+export async function openWorkspace() {
+  if (hasUnsaved.value) {
+    const discard = await ask("You have unsaved changes. Open another folder and discard them?", {
+      title: "Unsaved changes",
+      kind: "warning",
+      okLabel: "Discard",
+    });
+    if (!discard) return;
+  }
+  const picked = await open({ directory: true, multiple: false, title: "Open folder" });
+  if (typeof picked !== "string") return;
+  try {
+    await load(picked);
+  } catch (e) {
+    error.value = `Could not open ${picked}: ${e}`;
+  }
+}
+
+export async function selectFile(f: DocFile) {
+  if (!f.loaded) {
+    try {
+      const text = await invoke<string>("read_text", { path: f.id });
+      f.content = f.savedContent = text;
+      f.loaded = true;
+    } catch (e) {
+      error.value = `Could not read ${f.name}: ${e}`;
+      return;
+    }
+  }
   activeId.value = f.id;
 }
+
+export async function saveActive() {
+  const f = activeFile.value;
+  if (!f || !isDirty(f)) return;
+  const content = f.content;
+  try {
+    await invoke("write_text", { path: f.id, content });
+    f.savedContent = content;
+  } catch (e) {
+    error.value = `Could not save ${f.name}: ${e}`;
+  }
+}
+
+/** Id of the file whose name is being edited in the tree. */
+export const renamingId = ref<string | null>(null);
+
+export async function renameFile(f: DocFile, newName: string) {
+  let name = newName.trim();
+  if (!name || name === f.name) return;
+  // Keep it a Markdown file, otherwise it would drop out of the tree.
+  if (!/\.(md|markdown)$/i.test(name)) name += ".md";
+  try {
+    const path = await invoke<string>("rename_path", { path: f.id, newName: name });
+    const wasActive = activeId.value === f.id;
+    f.id = path;
+    f.name = name;
+    if (wasActive) activeId.value = path;
+    error.value = null;
+  } catch (e) {
+    error.value = `Could not rename ${f.name}: ${e}`;
+  }
+}
+
+export async function createFile(folder?: Folder) {
+  const dir = folder?.id ?? activeFolder.value?.id ?? rootPath.value;
+  if (!dir) return;
+  try {
+    const path = await invoke<string>("create_note", { dir, content: "# " });
+    await refresh();
+    const parent = findParent(tree, path);
+    if (parent) parent.open = true;
+    const f = findFile(tree, path);
+    if (f) {
+      await selectFile(f);
+      renamingId.value = f.id;
+    }
+  } catch (e) {
+    error.value = `Could not create a note: ${e}`;
+  }
+}
+
+const last = localStorage.getItem(STORAGE_KEY);
+if (last) load(last).catch(() => localStorage.removeItem(STORAGE_KEY));

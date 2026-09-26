@@ -8,7 +8,20 @@ import Icon from "./components/Icon.vue";
 import MarkdownEditor from "./components/MarkdownEditor.vue";
 import SettingsView from "./components/SettingsView.vue";
 import { resolvedMode, settings } from "./data/settings";
-import { activeFile, activeFolder, createFile, isDirty, saveActive, tree } from "./data/workspace";
+import {
+  activeFile,
+  activeFolder,
+  createFile,
+  error,
+  isDirty,
+  openWorkspace,
+  refresh,
+  renamingId,
+  rootName,
+  rootPath,
+  saveActive,
+  tree,
+} from "./data/workspace";
 import type { FormatState } from "./editor/formatting";
 
 type ViewMode = "live" | "source" | "split";
@@ -37,17 +50,19 @@ const railItems: { id: Panel; label: string; icon: string }[] = [
 ];
 
 const words = computed(() => {
-  const text = activeFile.value.content.replace(/```[\s\S]*?```/g, " ").replace(/[#>*_`~\-[\]()!|]/g, " ");
+  const text = (activeFile.value?.content ?? "").replace(/```[\s\S]*?```/g, " ").replace(/[#>*_`~\-[\]()!|]/g, " ");
   return text.split(/\s+/).filter(Boolean).length;
 });
 const readMinutes = computed(() => Math.max(1, Math.round(words.value / 200)));
 
-const previewHtml = computed(() => (mode.value === "split" ? (marked.parse(activeFile.value.content, { gfm: true }) as string) : ""));
+const previewHtml = computed(() =>
+  mode.value === "split" && activeFile.value ? (marked.parse(activeFile.value.content, { gfm: true }) as string) : "",
+);
 
 const outline = computed(() => {
   const items: { level: number; text: string; line: number }[] = [];
   let inFence = false;
-  activeFile.value.content.split("\n").forEach((line, i) => {
+  (activeFile.value?.content ?? "").split("\n").forEach((line, i) => {
     if (/^```/.test(line)) inFence = !inFence;
     const m = !inFence && /^(#{1,6})\s+(.*)$/.exec(line);
     if (m) items.push({ level: m[1].length, text: m[2], line: i + 1 });
@@ -72,8 +87,20 @@ function selectPanel(id: Panel) {
   }
 }
 
+/** Renames happen inline in the file tree, so reveal it first. */
+function startRename() {
+  if (!activeFile.value) return;
+  focusMode.value = false;
+  settingsOpen.value = false;
+  panel.value = "files";
+  sidebarOpen.value = true;
+  if (activeFolder.value) activeFolder.value.open = true;
+  renamingId.value = activeFile.value.id;
+}
+
 function exportHtml() {
   const f = activeFile.value;
+  if (!f) return;
   const body = marked.parse(f.content, { gfm: true }) as string;
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${f.name}</title></head><body>${body}</body></html>`;
   const a = document.createElement("a");
@@ -88,6 +115,9 @@ function onKey(e: KeyboardEvent) {
   if (mod && e.key.toLowerCase() === "s") {
     e.preventDefault();
     saveActive();
+  } else if (mod && e.key.toLowerCase() === "o") {
+    e.preventDefault();
+    openWorkspace();
   } else if (mod && e.shiftKey && e.key.toLowerCase() === "f") {
     e.preventDefault();
     focusMode.value = !focusMode.value;
@@ -113,8 +143,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       <button class="icon-btn lg" :aria-label="sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'" @click="sidebarOpen = !sidebarOpen">
         <Icon name="menu" :size="22" />
       </button>
-      <button class="new-doc" aria-label="New document" title="New document" @click="createFile()">
-        <Icon name="pen" :size="24" />
+      <button class="open-folder" aria-label="Open folder" title="Open folder (⌘O)" @click="openWorkspace()">
+        <Icon name="folderOpen" :size="24" />
       </button>
       <div class="rail-items">
         <button
@@ -148,17 +178,25 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
     <aside v-if="!focusMode && sidebarOpen" class="side" :aria-label="panel">
       <div class="side-header" data-tauri-drag-region>
         <div class="side-title">
-          <span class="overline">{{ panel === "files" ? "Workspace" : activeFile.name }}</span>
-          <span class="headline">{{ panel === "files" ? "Notes" : railItems.find((i) => i.id === panel)!.label }}</span>
+          <span class="overline">{{ panel === "files" ? "Workspace" : activeFile?.name }}</span>
+          <span class="headline" :title="panel === 'files' ? rootPath ?? undefined : undefined">
+            {{ panel === "files" ? rootName || "No folder" : railItems.find((i) => i.id === panel)!.label }}
+          </span>
         </div>
-        <template v-if="panel === 'files'">
+        <template v-if="panel === 'files' && rootPath">
           <button class="icon-btn" aria-label="New file" title="New file" @click="createFile()"><Icon name="plus" /></button>
-          <button class="icon-btn" aria-label="More workspace actions"><Icon name="more" /></button>
+          <button class="icon-btn" aria-label="Reload folder" title="Reload folder" @click="refresh()"><Icon name="reset" /></button>
         </template>
       </div>
 
-      <div v-if="panel === 'files'" role="tree" class="tree">
+      <div v-if="panel === 'files' && rootPath" role="tree" class="tree">
         <FileTree :nodes="tree" />
+        <p v-if="!tree.length" class="empty">No Markdown files in this folder.</p>
+      </div>
+
+      <div v-else-if="panel === 'files'" class="tree">
+        <p class="empty">Open a folder to browse its Markdown files.</p>
+        <button class="tonal-btn" @click="openWorkspace()"><Icon name="folderOpen" :size="18" />Open folder</button>
       </div>
 
       <div v-else-if="panel === 'outline'" class="tree">
@@ -183,14 +221,26 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       <SettingsView @close="settingsOpen = false" />
     </main>
 
-    <main v-show="!settingsOpen || focusMode" class="pane">
+    <main v-show="(!settingsOpen || focusMode) && !activeFile" class="pane empty-pane">
+      <header class="pane-header" data-tauri-drag-region />
+      <div class="placeholder">
+        <Icon name="folderOpen" :size="40" class="outline-color" />
+        <p v-if="!rootPath">Open a folder to start writing.</p>
+        <p v-else>Select a note from <strong>{{ rootName }}</strong>, or create a new one.</p>
+        <button v-if="!rootPath" class="tonal-btn" @click="openWorkspace()"><Icon name="folderOpen" :size="18" />Open folder</button>
+        <button v-else class="tonal-btn" @click="createFile()"><Icon name="plus" :size="18" />New note</button>
+        <p v-if="error" class="error">{{ error }}</p>
+      </div>
+    </main>
+
+    <main v-if="activeFile" v-show="!settingsOpen || focusMode" class="pane">
       <header class="pane-header" data-tauri-drag-region>
         <div class="breadcrumb" data-tauri-drag-region>
           <template v-if="activeFolder">
             <span class="muted">{{ activeFolder.name }}</span>
             <Icon name="chevronRight" :size="16" :stroke-width="2" class="outline-color" />
           </template>
-          <span class="doc-name">{{ activeFile.name }}</span>
+          <span class="doc-name" title="Double-click to rename" @dblclick="startRename">{{ activeFile.name }}</span>
         </div>
         <div role="group" aria-label="Editor mode" class="segmented">
           <button v-for="m in modes" :key="m.id" :aria-pressed="mode === m.id" :class="{ on: mode === m.id }" @click="mode = m.id">
@@ -233,6 +283,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       <footer class="status">
         <span>Markdown</span><span>UTF-8</span><span>LF</span>
         <span class="grow" />
+        <span v-if="error" class="error" :title="error" @click="error = null">{{ error }}</span>
         <span>{{ words }} {{ words === 1 ? "word" : "words" }}</span>
         <span>{{ readMinutes }} min read</span>
         <span v-if="isDirty(activeFile)" class="state edited">Edited · ⌘S to save</span>
@@ -283,7 +334,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   height: 16px;
 }
 
-.new-doc {
+.open-folder {
   width: 56px;
   height: 56px;
   border-radius: 16px;
@@ -295,7 +346,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   box-shadow: 0 1px 3px rgba(var(--md-shadow), 0.12);
 }
 
-.new-doc:hover {
+.open-folder:hover {
   box-shadow: 0 3px 8px rgba(var(--md-shadow), 0.18);
 }
 
@@ -637,5 +688,57 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 
 .saved {
   color: var(--md-primary);
+}
+
+.error {
+  color: var(--md-error);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.tonal-btn {
+  align-self: flex-start;
+  height: 40px;
+  border-radius: 20px;
+  padding: 0 20px 0 16px;
+  margin: 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+.tonal-btn:hover {
+  box-shadow: 0 1px 3px rgba(var(--md-shadow), 0.15);
+}
+
+.placeholder {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-bottom: 64px;
+  color: var(--md-on-surface-variant);
+  text-align: center;
+}
+
+.placeholder p {
+  margin: 0;
+}
+
+.placeholder .tonal-btn {
+  align-self: center;
+}
+
+.placeholder .error {
+  white-space: normal;
+  max-width: 480px;
 }
 </style>

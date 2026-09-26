@@ -7,6 +7,7 @@ type IconDef = { paths: string[]; circles?: [number, number, number][]; rects?: 
 const icons: Record<string, IconDef> = {
   menu: { paths: ["M4 6h16M4 12h16M4 18h16"] },
   pen: { paths: ["M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z", "M13.5 8.5l2 2"] },
+  folderOpen: { paths: ["M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v1", "M3 17l2.6-6.1A1.5 1.5 0 0 1 7 10h13.2a1 1 0 0 1 .92 1.39L18.4 18a1.5 1.5 0 0 1-1.4 1H5a2 2 0 0 1-2-2V7"] },
   folder: { paths: ["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"] },
   outline: { paths: ["M9 6h11M9 12h11M12 18h8"], dots: "M4 6h.01M4 12h.01M7 18h.01" },
   search: { paths: ["M20 20l-3.5-3.5"], circles: [[11, 11, 7]] },
