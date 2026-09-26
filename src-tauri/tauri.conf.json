@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "kamipanda",
+  "productName": "KamiPanda",
   "version": "0.1.0",
   "identifier": "com.giathanh.kamipanda",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Marka",
+        "title": "KamiPanda",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
