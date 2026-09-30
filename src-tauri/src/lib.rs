@@ -80,6 +80,28 @@ fn create_note(dir: String, content: String) -> Result<String, String> {
     Err("Too many untitled notes in this folder".into())
 }
 
+/// Creates `Untitled folder` (or `Untitled folder N` if taken) in `dir` and returns its path.
+#[tauri::command]
+fn create_folder(dir: String) -> Result<String, String> {
+    let dir = Path::new(&dir);
+    for n in 1..1000 {
+        let name = if n == 1 { "Untitled folder".to_string() } else { format!("Untitled folder {n}") };
+        let path = dir.join(name);
+        match fs::create_dir(&path) {
+            Ok(()) => return Ok(path.to_string_lossy().into_owned()),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    Err("Too many untitled folders in this folder".into())
+}
+
+/// Moves a file or folder to the system trash so it can be restored.
+#[tauri::command]
+fn trash_path(path: String) -> Result<(), String> {
+    trash::delete(&path).map_err(|e| e.to_string())
+}
+
 /// Renames `path` to `new_name` within the same folder and returns the new path.
 #[tauri::command]
 fn rename_path(path: String, new_name: String) -> Result<String, String> {
@@ -112,7 +134,7 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![read_workspace, read_text, write_text, create_note, rename_path])
+        .invoke_handler(tauri::generate_handler![read_workspace, read_text, write_text, create_note, create_folder, rename_path, trash_path])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
