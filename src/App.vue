@@ -276,7 +276,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <span v-if="error" class="error" :title="error" @click="error = null">{{ error }}</span>
         <span>{{ words }} {{ words === 1 ? "word" : "words" }}</span>
         <span>{{ readMinutes }} min read</span>
-        <span v-if="isDirty(activeFile)" class="state edited">Edited · ⌘S to save</span>
+        <span v-if="isDirty(activeFile)" class="state edited">{{ settings.autoSave ? "Edited" : "Edited · ⌘S to save" }}</span>
         <span v-else class="state saved"><Icon name="check" :size="14" :stroke-width="2.4" />Saved</span>
       </footer>
     </main>
