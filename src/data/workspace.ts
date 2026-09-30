@@ -155,34 +155,59 @@ export async function saveActive() {
   }
 }
 
-/** Id of the file whose name is being edited in the tree. */
+/** Id of the file or folder whose name is being edited in the tree. */
 export const renamingId = ref<string | null>(null);
 
-export async function renameFile(f: DocFile, newName: string) {
-  let name = newName.trim();
-  if (!name || name === f.name) return;
-  // Keep it a Markdown file, otherwise it would drop out of the tree.
-  if (!/\.(md|markdown)$/i.test(name)) name += ".md";
-  try {
-    const path = await invoke<string>("rename_path", { path: f.id, newName: name });
-    const wasActive = activeId.value === f.id;
-    f.id = path;
-    f.name = name;
-    if (wasActive) activeId.value = path;
-    error.value = null;
-  } catch (e) {
-    error.value = `Could not rename ${f.name}: ${e}`;
+/** Points ids under a renamed or moved folder at their new location. */
+function remapIds(nodes: TreeNode[], from: string, to: string) {
+  for (const node of nodes) {
+    if (node.id.startsWith(from)) node.id = to + node.id.slice(from.length);
+    if (node.kind === "folder") remapIds(node.children, from, to);
   }
 }
 
-export async function createFile(folder?: Folder) {
-  const dir = folder?.id ?? activeFolder.value?.id ?? rootPath.value;
+export async function renameNode(node: TreeNode, newName: string) {
+  let name = newName.trim();
+  if (!name || name === node.name) return;
+  // Keep it a Markdown file, otherwise it would drop out of the tree.
+  if (node.kind === "file" && !/\.(md|markdown)$/i.test(name)) name += ".md";
+  try {
+    const path = await invoke<string>("rename_path", { path: node.id, newName: name });
+    if (node.kind === "folder") {
+      const sep = node.id.includes("\\") ? "\\" : "/";
+      const [from, to] = [node.id + sep, path + sep];
+      remapIds(node.children, from, to);
+      if (activeId.value?.startsWith(from)) activeId.value = to + activeId.value.slice(from.length);
+    } else if (activeId.value === node.id) {
+      activeId.value = path;
+    }
+    node.id = path;
+    node.name = name;
+    error.value = null;
+  } catch (e) {
+    error.value = `Could not rename ${node.name}: ${e}`;
+  }
+}
+
+/** Folder that new items go into: `undefined` follows the open note, `null` is the workspace root. */
+function targetDir(folder: Folder | null | undefined) {
+  if (folder === undefined) return activeFolder.value?.id ?? rootPath.value;
+  return folder?.id ?? rootPath.value;
+}
+
+/** Reloads the tree and expands the folder holding the new node at `path`. */
+async function revealNew(path: string) {
+  await refresh();
+  const parent = findParent(tree, path);
+  if (parent) parent.open = true;
+}
+
+export async function createFile(folder?: Folder | null) {
+  const dir = targetDir(folder);
   if (!dir) return;
   try {
     const path = await invoke<string>("create_note", { dir, content: "# " });
-    await refresh();
-    const parent = findParent(tree, path);
-    if (parent) parent.open = true;
+    await revealNew(path);
     const f = findFile(tree, path);
     if (f) {
       await selectFile(f);
@@ -190,6 +215,36 @@ export async function createFile(folder?: Folder) {
     }
   } catch (e) {
     error.value = `Could not create a note: ${e}`;
+  }
+}
+
+export async function createFolder(folder?: Folder | null) {
+  const dir = targetDir(folder);
+  if (!dir) return;
+  try {
+    const path = await invoke<string>("create_folder", { dir });
+    await revealNew(path);
+    renamingId.value = path;
+  } catch (e) {
+    error.value = `Could not create a folder: ${e}`;
+  }
+}
+
+/** Moves a note or folder to the system trash after confirming. */
+export async function trashNode(node: TreeNode) {
+  const unsaved = node.kind === "file" ? isDirty(node) : allFiles(node.children).some(isDirty);
+  const what = node.kind === "file" ? "note" : "folder and everything in it";
+  const ok = await ask(
+    `Move the ${what} “${node.name}” to the Trash?${unsaved ? "\n\nUnsaved changes will be lost." : ""}`,
+    { title: "Move to Trash", kind: "warning", okLabel: "Move to Trash" },
+  );
+  if (!ok) return;
+  try {
+    await invoke("trash_path", { path: node.id });
+    await refresh();
+    error.value = null;
+  } catch (e) {
+    error.value = `Could not delete ${node.name}: ${e}`;
   }
 }
 

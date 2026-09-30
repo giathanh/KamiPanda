@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { activeId, isDirty, renameFile, renamingId, selectFile, type DocFile, type TreeNode } from "../data/workspace";
+import { showTreeMenu } from "../data/treeMenu";
+import { activeId, isDirty, renameNode, renamingId, selectFile, trashNode, type Folder, type TreeNode } from "../data/workspace";
 import Icon from "./Icon.vue";
 
-defineProps<{ nodes: TreeNode[]; depth?: number }>();
+/** `parent` is the folder holding `nodes`, absent at the workspace root. */
+defineProps<{ nodes: TreeNode[]; depth?: number; parent?: Folder }>();
 
 /** Focuses the rename field and selects the name without its extension. */
 function focusInput(el: unknown) {
@@ -11,23 +13,49 @@ function focusInput(el: unknown) {
   el.setSelectionRange(0, el.value.replace(/\.(md|markdown)$/i, "").length);
 }
 
-function commit(node: DocFile, e: Event) {
+function commit(node: TreeNode, e: Event) {
   // Enter commits and removes the input, which then fires blur; handle only once.
   if (renamingId.value !== node.id) return;
   renamingId.value = null;
-  renameFile(node, (e.target as HTMLInputElement).value);
+  renameNode(node, (e.target as HTMLInputElement).value);
 }
 </script>
 
 <template>
   <template v-for="node in nodes" :key="node.id">
-    <template v-if="node.kind === 'folder'">
+    <div
+      v-if="node.id === renamingId"
+      class="row"
+      :class="{ current: node.id === activeId }"
+      :style="{ paddingLeft: `${12 + (depth ?? 0) * 24}px` }"
+    >
+      <template v-if="node.kind === 'folder'">
+        <span class="twisty-space" />
+        <Icon name="folder" :size="18" class="primary" />
+      </template>
+      <Icon v-else name="file" :size="18" :class="node.id === activeId ? '' : 'muted'" />
+      <input
+        :ref="focusInput"
+        class="rename"
+        :value="node.name"
+        :aria-label="node.kind === 'folder' ? 'Folder name' : 'File name'"
+        spellcheck="false"
+        @keydown.enter.prevent="commit(node, $event)"
+        @keydown.esc.prevent.stop="renamingId = null"
+        @blur="commit(node, $event)"
+      />
+    </div>
+
+    <template v-else-if="node.kind === 'folder'">
       <button
         class="row"
         role="treeitem"
         :aria-expanded="node.assets ? undefined : node.open"
         :style="{ paddingLeft: `${12 + (depth ?? 0) * 24}px` }"
         @click="node.open = !node.open"
+        @contextmenu.prevent.stop="showTreeMenu(node, parent)"
+        @keydown.f2.prevent="renamingId = node.id"
+        @keydown.meta.backspace.prevent="trashNode(node)"
       >
         <template v-if="node.assets">
           <span class="twisty-space" />
@@ -40,27 +68,8 @@ function commit(node: DocFile, e: Event) {
           <span class="folder-name">{{ node.name }}</span>
         </template>
       </button>
-      <FileTree v-if="node.open && !node.assets" :nodes="node.children" :depth="(depth ?? 0) + 1" />
+      <FileTree v-if="node.open && !node.assets" :nodes="node.children" :depth="(depth ?? 0) + 1" :parent="node" />
     </template>
-
-    <div
-      v-else-if="node.id === renamingId"
-      class="row"
-      :class="{ current: node.id === activeId }"
-      :style="{ paddingLeft: `${12 + (depth ?? 0) * 24}px` }"
-    >
-      <Icon name="file" :size="18" :class="node.id === activeId ? '' : 'muted'" />
-      <input
-        :ref="focusInput"
-        class="rename"
-        :value="node.name"
-        aria-label="File name"
-        spellcheck="false"
-        @keydown.enter.prevent="commit(node, $event)"
-        @keydown.esc.prevent.stop="renamingId = null"
-        @blur="commit(node, $event)"
-      />
-    </div>
 
     <button
       v-else
@@ -69,10 +78,12 @@ function commit(node: DocFile, e: Event) {
       :class="{ current: node.id === activeId }"
       :aria-current="node.id === activeId ? 'page' : undefined"
       :style="{ paddingLeft: `${12 + (depth ?? 0) * 24}px` }"
-      title="Double-click or press F2 to rename"
+      title="Double-click or press F2 to rename, right-click for more"
       @click="selectFile(node)"
       @dblclick="renamingId = node.id"
+      @contextmenu.prevent.stop="showTreeMenu(node, parent)"
       @keydown.f2.prevent="renamingId = node.id"
+      @keydown.meta.backspace.prevent="trashNode(node)"
     >
       <Icon name="file" :size="18" :class="node.id === activeId ? '' : 'muted'" />
       <span class="file-name">{{ node.name }}</span>
@@ -106,6 +117,9 @@ function commit(node: DocFile, e: Event) {
 
 .folder-name {
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-name {
