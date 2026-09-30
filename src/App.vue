@@ -8,6 +8,7 @@ import Icon from "./components/Icon.vue";
 import MarkdownEditor from "./components/MarkdownEditor.vue";
 import SettingsView from "./components/SettingsView.vue";
 import { resolvedMode, settings } from "./data/settings";
+import { showTreeMenu } from "./data/treeMenu";
 import { checkForUpdates } from "./data/updater";
 import {
   activeFile,
@@ -181,7 +182,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         </template>
       </div>
 
-      <div v-if="panel === 'files' && rootPath" role="tree" class="tree">
+      <div v-if="panel === 'files' && rootPath" role="tree" class="tree files" @contextmenu.prevent="showTreeMenu()">
         <FileTree :nodes="tree" />
         <p v-if="!tree.length" class="empty">No Markdown files in this folder.</p>
       </div>
@@ -436,6 +437,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   gap: 2px;
   overflow-y: auto;
   min-height: 0;
+}
+
+/* Fill the panel so right-clicking the empty space below the tree opens its menu. */
+.tree.files {
+  flex-grow: 1;
 }
 
 .outline-item {
