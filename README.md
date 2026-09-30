@@ -17,6 +17,8 @@
 - **Thanh định dạng** – in đậm, in nghiêng, gạch ngang, code, liên kết, tiêu đề và chèn nhanh các khối nội dung.
 - **Outline** – danh sách tiêu đề của tài liệu, bấm để nhảy tới dòng tương ứng.
 - **Quản lý ghi chú** – tạo ghi chú mới (`Untitled.md`), đổi tên trực tiếp trên cây file (F2 hoặc double-click vào tên file).
+- **Menu chuột phải** – tạo ghi chú / thư mục, đổi tên, hiện trong Finder / File Explorer, sao chép đường dẫn, chuyển vào Thùng rác ngay trên cây file.
+- **Tự động lưu** – lưu ngay sau khi ngừng gõ, khi chuyển ghi chú hoặc rời app; tắt được trong Settings → Editor.
 - **Focus mode** – ẩn toàn bộ giao diện phụ để tập trung viết.
 - **Xuất HTML** – xuất tài liệu hiện tại thành file `.html`.
 - **Tuỳ biến giao diện** – chế độ sáng / tối / theo hệ thống, chọn màu nhấn và tinh chỉnh từng màu trong Settings.
