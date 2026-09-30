@@ -21,6 +21,7 @@
 - **Xuất HTML** – xuất tài liệu hiện tại thành file `.html`.
 - **Tuỳ biến giao diện** – chế độ sáng / tối / theo hệ thống, chọn màu nhấn và tinh chỉnh từng màu trong Settings.
 - Đếm số từ và thời gian đọc ước tính.
+- **Tự động cập nhật** – app kiểm tra bản mới trên GitHub Releases khi khởi động; kiểm tra thủ công trong Settings → Updates.
 
 ## Phím tắt
 
@@ -66,12 +67,18 @@ File cài đặt sẽ nằm trong `src-tauri/target/release/bundle/`.
 
 ### Phát hành
 
-Push một tag dạng `v*` (ví dụ `v0.1.0`) để GitHub Actions build cho macOS và Windows và tạo một bản release nháp:
+1. Thêm mục cho phiên bản mới vào đầu [CHANGELOG.md](CHANGELOG.md), ví dụ `## [1.2.0] - 2026-10-15`. Nội dung mục này sẽ thành release notes trên GitHub và hiện trong hộp thoại cập nhật của app. Workflow báo lỗi nếu thiếu mục này.
+2. Tăng `version` trong `package.json`, `src-tauri/tauri.conf.json` và `src-tauri/Cargo.toml`.
+3. Commit, rồi push tag `v<version>` để GitHub Actions build cho macOS và Windows và tạo bản release nháp:
 
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
+   ```bash
+   git tag v1.2.0
+   git push origin v1.2.0
+   ```
+
+4. Kiểm tra bản nháp trên GitHub rồi bấm **Publish release**. Chỉ bản đã publish mới được app tự động cập nhật.
+
+Bản build cần khóa ký update: đặt secret `TAURI_SIGNING_PRIVATE_KEY` và `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` trên GitHub (khi build ở máy local, đặt hai biến môi trường cùng tên).
 
 ## Công nghệ
 

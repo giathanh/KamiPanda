@@ -42,6 +42,24 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Read release notes from CHANGELOG
+        id: notes
+        shell: bash
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          notes=$(awk -v v="$version" '
+            /^## \[/ { if (found) exit; found = index($0, "[" v "]") > 0; next }
+            found' CHANGELOG.md)
+          if [ -z "$(echo "$notes" | tr -d '[:space:]')" ]; then
+            echo "::error::CHANGELOG.md has no entry for $version"
+            exit 1
+          fi
+          {
+            echo "body<<CHANGELOG_EOF"
+            echo "$notes"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and upload
         uses: tauri-apps/tauri-action@v0
         env:
@@ -51,7 +69,7 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: "KamiPanda v__VERSION__"
-          releaseBody: "Xem các file cài đặt bên dưới."
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
