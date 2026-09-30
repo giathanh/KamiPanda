@@ -8,6 +8,7 @@ import Icon from "./components/Icon.vue";
 import MarkdownEditor from "./components/MarkdownEditor.vue";
 import SettingsView from "./components/SettingsView.vue";
 import { resolvedMode, settings } from "./data/settings";
+import { checkForUpdates } from "./data/updater";
 import {
   activeFile,
   activeFolder,
@@ -118,7 +119,10 @@ function onKey(e: KeyboardEvent) {
     focusMode.value = false;
   }
 }
-onMounted(() => window.addEventListener("keydown", onKey));
+onMounted(() => {
+  window.addEventListener("keydown", onKey);
+  if (import.meta.env.PROD) checkForUpdates({ silent: true });
+});
 onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 </script>
 

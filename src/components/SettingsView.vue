@@ -11,6 +11,7 @@ import {
   settings,
   type ThemePreference,
 } from "../data/settings";
+import { appVersion, checkForUpdates, lastResult, updateProgress, updateStatus } from "../data/updater";
 import { normalizeHex } from "../theme/palette";
 import Icon from "./Icon.vue";
 
@@ -38,6 +39,12 @@ function commitHex(name: string, e: Event) {
   if (normalizeHex(input.value)) setOverride(name, input.value);
   else input.value = effectiveColors.value[name];
 }
+
+const updateLabel = computed(() => {
+  if (updateStatus.value === "checking") return "Checking…";
+  if (updateStatus.value === "downloading") return updateProgress.value === null ? "Downloading…" : `Downloading ${updateProgress.value}%`;
+  return "Check for updates";
+});
 </script>
 
 <template>
@@ -69,6 +76,22 @@ function commitHex(name: string, e: Event) {
                   {{ t.label }}
                 </button>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Updates</h2>
+          <div class="card">
+            <div class="row">
+              <div class="row-text">
+                <span class="row-title">KamiPanda {{ appVersion }}</span>
+                <span class="row-sub">{{ lastResult ?? "New versions are checked automatically on launch." }}</span>
+              </div>
+              <button class="tonal" :disabled="updateStatus === 'checking' || updateStatus === 'downloading'" @click="checkForUpdates()">
+                <Icon name="reset" :size="18" />
+                {{ updateLabel }}
+              </button>
             </div>
           </div>
         </section>
@@ -452,6 +475,10 @@ input[type="color"] {
   font-weight: 600;
   background: var(--md-secondary-container);
   color: var(--md-on-secondary-container);
+}
+
+.row .tonal {
+  flex-shrink: 0;
 }
 
 .tonal:disabled {
