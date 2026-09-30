@@ -3,7 +3,7 @@ import { ask, message } from "@tauri-apps/plugin-dialog";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 import { ref } from "vue";
-import { hasUnsaved } from "./workspace";
+import { flushAutoSave, hasUnsaved } from "./workspace";
 
 export type UpdateStatus = "idle" | "checking" | "downloading" | "error";
 
@@ -43,6 +43,7 @@ export async function checkForUpdates({ silent = false } = {}) {
       lastResult.value = `Version ${update.version} is available.`;
       return;
     }
+    await flushAutoSave();
     if (hasUnsaved.value) {
       const discard = await ask("You have unsaved changes. Restart to update and discard them?", {
         title: "Unsaved changes",

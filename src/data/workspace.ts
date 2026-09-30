@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { ask, open } from "@tauri-apps/plugin-dialog";
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
+import { settings } from "./settings";
 
 export interface DocFile {
   kind: "file";
@@ -112,6 +113,7 @@ async function load(path: string) {
 }
 
 export async function openWorkspace() {
+  await flushAutoSave();
   if (hasUnsaved.value) {
     const discard = await ask("You have unsaved changes. Open another folder and discard them?", {
       title: "Unsaved changes",
@@ -143,19 +145,65 @@ export async function selectFile(f: DocFile) {
   activeId.value = f.id;
 }
 
-export async function saveActive() {
-  const f = activeFile.value;
-  if (!f || !isDirty(f)) return;
-  const content = f.content;
-  try {
-    await invoke("write_text", { path: f.id, content });
-    f.savedContent = content;
-  } catch (e) {
-    error.value = `Could not save ${f.name}: ${e}`;
-  }
+/** Writes are chained so an older save can never land on disk after a newer one. */
+let saving = Promise.resolve();
+
+export function saveFile(f: DocFile) {
+  saving = saving.then(async () => {
+    if (!isDirty(f)) return;
+    const content = f.content;
+    try {
+      await invoke("write_text", { path: f.id, content });
+      f.savedContent = content;
+    } catch (e) {
+      error.value = `Could not save ${f.name}: ${e}`;
+    }
+  });
+  return saving;
 }
 
-/** Id of the file or folder whose name is being edited in the tree. */
+export function saveActive() {
+  cancelAutoSave();
+  const f = activeFile.value;
+  return f ? saveFile(f) : Promise.resolve();
+}
+
+const AUTO_SAVE_DELAY = 1000;
+let pending: DocFile | undefined;
+let timer: ReturnType<typeof setTimeout> | undefined;
+
+function cancelAutoSave() {
+  clearTimeout(timer);
+  pending = undefined;
+}
+
+/** Saves the file waiting on the auto-save timer right away, if any. */
+export function flushAutoSave() {
+  const f = pending;
+  cancelAutoSave();
+  return f ? saveFile(f) : saving;
+}
+
+function scheduleAutoSave() {
+  const f = activeFile.value;
+  if (!settings.autoSave || !f || !isDirty(f)) return;
+  if (pending && pending !== f) flushAutoSave();
+  pending = f;
+  clearTimeout(timer);
+  timer = setTimeout(flushAutoSave, AUTO_SAVE_DELAY);
+}
+
+watch(() => activeFile.value?.content, scheduleAutoSave);
+// Don't leave edits behind when switching notes or apps.
+watch(activeId, () => flushAutoSave());
+window.addEventListener("blur", () => flushAutoSave());
+watch(
+  () => settings.autoSave,
+  (on) => (on ? scheduleAutoSave() : cancelAutoSave()),
+);
+
+/** Id of the file whose name is being edited in the tree. */
+
 export const renamingId = ref<string | null>(null);
 
 /** Points ids under a renamed or moved folder at their new location. */

@@ -81,6 +81,30 @@ const updateLabel = computed(() => {
         </section>
 
         <section>
+          <h2>Editor</h2>
+          <div class="card">
+            <div class="row">
+              <div class="row-text">
+                <span class="row-title">Auto save</span>
+                <span class="row-sub">Save changes automatically a moment after you stop typing.</span>
+              </div>
+              <div role="group" aria-label="Auto save" class="segmented">
+                <button
+                  v-for="opt in [true, false]"
+                  :key="String(opt)"
+                  :aria-pressed="settings.autoSave === opt"
+                  :class="{ on: settings.autoSave === opt }"
+                  @click="settings.autoSave = opt"
+                >
+                  <Icon v-if="settings.autoSave === opt" name="check" :size="16" :stroke-width="2.2" />
+                  {{ opt ? "On" : "Off" }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
           <h2>Updates</h2>
           <div class="card">
             <div class="row">
