@@ -1,4 +1,5 @@
-import { Menu, type MenuItemOptions, type PredefinedMenuItemOptions } from "@tauri-apps/api/menu";
+import { Menu, MenuItem, PredefinedMenuItem, type MenuItemOptions } from "@tauri-apps/api/menu";
+import type { Resource } from "@tauri-apps/api/core";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
   createFile,
@@ -14,7 +15,10 @@ import {
 } from "./workspace";
 
 const revealLabel = /Mac/.test(navigator.userAgent) ? "Reveal in Finder" : "Show in File Explorer";
-const separator: PredefinedMenuItemOptions = { item: "Separator" };
+const separator = "separator" as const;
+
+/** Native objects behind the last menu shown, released when the next one opens. */
+let lastMenu: Resource[] = [];
 
 function reveal(path: string) {
   revealItemInDir(path).catch((e) => (error.value = `Could not reveal ${path}: ${e}`));
@@ -29,7 +33,7 @@ function copyPath(path: string) {
  * `parent` is the folder containing `node`, where new items next to a note are created.
  */
 export async function showTreeMenu(node?: TreeNode, parent?: Folder) {
-  let items: (MenuItemOptions | PredefinedMenuItemOptions)[];
+  let items: (MenuItemOptions | typeof separator)[];
   if (!node) {
     const root = rootPath.value;
     if (!root) return;
@@ -55,6 +59,12 @@ export async function showTreeMenu(node?: TreeNode, parent?: Folder) {
       { text: "Move to Trash", action: () => trashNode(node) },
     ];
   }
-  const menu = await Menu.new({ items });
+  // Items passed to `Menu.new` as plain options lose their `action` handler once the menu is
+  // built, so each one is created on its own and kept alive until the next menu replaces it.
+  const built = await Promise.all(
+    items.map((i) => (i === separator ? PredefinedMenuItem.new({ item: "Separator" }) : MenuItem.new(i))),
+  );
+  const menu = await Menu.new({ items: built });
+  for (const r of lastMenu.splice(0, lastMenu.length, menu, ...built)) r.close().catch(() => {});
   await menu.popup();
 }
