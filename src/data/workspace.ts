@@ -33,7 +33,9 @@ type Entry =
 const STORAGE_KEY = "kamipanda.workspace";
 
 export const rootPath = ref<string | null>(null);
-export const rootName = computed(() => rootPath.value?.split(/[\\/]/).filter(Boolean).pop() ?? "");
+export const rootName = computed(
+  () => rootPath.value?.split(/[\\/]/).filter(Boolean).pop() ?? "",
+);
 export const tree = reactive<TreeNode[]>([]);
 export const activeId = ref<string | null>(null);
 export const error = ref<string | null>(null);
@@ -48,7 +50,11 @@ function findFile(nodes: TreeNode[], id: string): DocFile | undefined {
   }
 }
 
-function findParent(nodes: TreeNode[], id: string, parent?: Folder): Folder | undefined {
+function findParent(
+  nodes: TreeNode[],
+  id: string,
+  parent?: Folder,
+): Folder | undefined {
   for (const node of nodes) {
     if (node.id === id) return parent;
     if (node.kind === "folder") {
@@ -63,11 +69,17 @@ function allFiles(nodes: TreeNode[]): DocFile[] {
 }
 
 function allFolders(nodes: TreeNode[]): Folder[] {
-  return nodes.flatMap((n) => (n.kind === "folder" ? [n, ...allFolders(n.children)] : []));
+  return nodes.flatMap((n) =>
+    n.kind === "folder" ? [n, ...allFolders(n.children)] : [],
+  );
 }
 
-export const activeFile = computed(() => (activeId.value ? findFile(tree, activeId.value) : undefined));
-export const activeFolder = computed(() => (activeId.value ? findParent(tree, activeId.value) : undefined));
+export const activeFile = computed(() =>
+  activeId.value ? findFile(tree, activeId.value) : undefined,
+);
+export const activeFolder = computed(() =>
+  activeId.value ? findParent(tree, activeId.value) : undefined,
+);
 
 export function isDirty(f: DocFile) {
   return f.content !== f.savedContent;
@@ -81,7 +93,14 @@ function toNodes(entries: Entry[], prev: Map<string, TreeNode>): TreeNode[] {
     const old = prev.get(e.path);
     if (e.kind === "file") {
       if (old?.kind === "file") return { ...old, name: e.name };
-      return { kind: "file", id: e.path, name: e.name, content: "", savedContent: "", loaded: false };
+      return {
+        kind: "file",
+        id: e.path,
+        name: e.name,
+        content: "",
+        savedContent: "",
+        loaded: false,
+      };
     }
     const assets = e.name.toLowerCase() === "assets";
     return {
@@ -97,8 +116,12 @@ function toNodes(entries: Entry[], prev: Map<string, TreeNode>): TreeNode[] {
 
 export async function refresh() {
   if (!rootPath.value) return;
-  const entries = await invoke<Entry[]>("read_workspace", { root: rootPath.value });
-  const prev = new Map<string, TreeNode>([...allFiles(tree), ...allFolders(tree)].map((n) => [n.id, n]));
+  const entries = await invoke<Entry[]>("read_workspace", {
+    root: rootPath.value,
+  });
+  const prev = new Map<string, TreeNode>(
+    [...allFiles(tree), ...allFolders(tree)].map((n) => [n.id, n]),
+  );
   tree.splice(0, tree.length, ...toNodes(entries, prev));
   if (activeId.value && !findFile(tree, activeId.value)) activeId.value = null;
 }
@@ -115,14 +138,21 @@ async function load(path: string) {
 export async function openWorkspace() {
   await flushAutoSave();
   if (hasUnsaved.value) {
-    const discard = await ask("You have unsaved changes. Open another folder and discard them?", {
-      title: "Unsaved changes",
-      kind: "warning",
-      okLabel: "Discard",
-    });
+    const discard = await ask(
+      "You have unsaved changes. Open another folder and discard them?",
+      {
+        title: "Unsaved changes",
+        kind: "warning",
+        okLabel: "Discard",
+      },
+    );
     if (!discard) return;
   }
-  const picked = await open({ directory: true, multiple: false, title: "Open folder" });
+  const picked = await open({
+    directory: true,
+    multiple: false,
+    title: "Open folder",
+  });
   if (typeof picked !== "string") return;
   try {
     await load(picked);
@@ -202,8 +232,7 @@ watch(
   (on) => (on ? scheduleAutoSave() : cancelAutoSave()),
 );
 
-/** Id of the file whose name is being edited in the tree. */
-
+/** Id of the file or folder whose name is being edited in the tree. */
 export const renamingId = ref<string | null>(null);
 
 /** Points ids under a renamed or moved folder at their new location. */
@@ -220,12 +249,16 @@ export async function renameNode(node: TreeNode, newName: string) {
   // Keep it a Markdown file, otherwise it would drop out of the tree.
   if (node.kind === "file" && !/\.(md|markdown)$/i.test(name)) name += ".md";
   try {
-    const path = await invoke<string>("rename_path", { path: node.id, newName: name });
+    const path = await invoke<string>("rename_path", {
+      path: node.id,
+      newName: name,
+    });
     if (node.kind === "folder") {
       const sep = node.id.includes("\\") ? "\\" : "/";
       const [from, to] = [node.id + sep, path + sep];
       remapIds(node.children, from, to);
-      if (activeId.value?.startsWith(from)) activeId.value = to + activeId.value.slice(from.length);
+      if (activeId.value?.startsWith(from))
+        activeId.value = to + activeId.value.slice(from.length);
     } else if (activeId.value === node.id) {
       activeId.value = path;
     }
@@ -280,7 +313,10 @@ export async function createFolder(folder?: Folder | null) {
 
 /** Moves a note or folder to the system trash after confirming. */
 export async function trashNode(node: TreeNode) {
-  const unsaved = node.kind === "file" ? isDirty(node) : allFiles(node.children).some(isDirty);
+  const unsaved =
+    node.kind === "file"
+      ? isDirty(node)
+      : allFiles(node.children).some(isDirty);
   const what = node.kind === "file" ? "note" : "folder and everything in it";
   const ok = await ask(
     `Move the ${what} “${node.name}” to the Trash?${unsaved ? "\n\nUnsaved changes will be lost." : ""}`,
