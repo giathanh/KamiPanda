@@ -88,12 +88,22 @@ interface StoredSettings {
   /** Write edits to disk shortly after typing stops, instead of waiting for ⌘S. */
   autoSave: boolean;
   language: LanguagePreference;
+  /** Scale factor for the editor and preview text, adjusted from the status bar. */
+  editorZoom: number;
 }
 
 const STORAGE_KEY = "kamipanda.settings";
 
+export const ZOOM_MIN = 0.5;
+export const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.1;
+
+function clampZoom(value: number) {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 10) / 10));
+}
+
 function load(): StoredSettings {
-  const fallback: StoredSettings = { theme: "light", accent: DEFAULT_ACCENT, overrides: { light: {}, dark: {} }, autoSave: true, language: "system" };
+  const fallback: StoredSettings = { theme: "light", accent: DEFAULT_ACCENT, overrides: { light: {}, dark: {} }, autoSave: true, language: "system", editorZoom: 1 };
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
     if (!raw) return fallback;
@@ -103,6 +113,7 @@ function load(): StoredSettings {
       overrides: { light: { ...raw.overrides?.light }, dark: { ...raw.overrides?.dark } },
       autoSave: typeof raw.autoSave === "boolean" ? raw.autoSave : fallback.autoSave,
       language: ["system", "en", "vi", "zh", "ja"].includes(raw.language) ? raw.language : fallback.language,
+      editorZoom: typeof raw.editorZoom === "number" ? clampZoom(raw.editorZoom) : fallback.editorZoom,
     };
   } catch {
     return fallback;
@@ -131,6 +142,7 @@ function apply() {
   const root = document.documentElement;
   const mode = resolvedMode.value;
   root.dataset.theme = mode;
+  root.style.setProperty("--editor-zoom", String(settings.editorZoom));
 
   const vars: Record<string, string> = {
     ...(settings.accent === DEFAULT_ACCENT ? {} : schemeFromSeed(settings.accent, mode)),
@@ -164,4 +176,16 @@ export function clearOverride(name: string) {
 export function resetColors() {
   settings.accent = DEFAULT_ACCENT;
   settings.overrides = { light: {}, dark: {} };
+}
+
+export function zoomIn() {
+  settings.editorZoom = clampZoom(settings.editorZoom + ZOOM_STEP);
+}
+
+export function zoomOut() {
+  settings.editorZoom = clampZoom(settings.editorZoom - ZOOM_STEP);
+}
+
+export function resetZoom() {
+  settings.editorZoom = 1;
 }
