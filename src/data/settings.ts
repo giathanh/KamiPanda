@@ -84,12 +84,14 @@ interface StoredSettings {
   accent: string;
   /** Per-mode overrides of individual CSS variables, applied on top of the accent scheme. */
   overrides: Record<Mode, Record<string, string>>;
+  /** Write edits to disk shortly after typing stops, instead of waiting for ⌘S. */
+  autoSave: boolean;
 }
 
 const STORAGE_KEY = "kamipanda.settings";
 
 function load(): StoredSettings {
-  const fallback: StoredSettings = { theme: "light", accent: DEFAULT_ACCENT, overrides: { light: {}, dark: {} } };
+  const fallback: StoredSettings = { theme: "light", accent: DEFAULT_ACCENT, overrides: { light: {}, dark: {} }, autoSave: true };
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
     if (!raw) return fallback;
@@ -97,6 +99,7 @@ function load(): StoredSettings {
       theme: ["light", "dark", "system"].includes(raw.theme) ? raw.theme : fallback.theme,
       accent: normalizeHex(raw.accent ?? "") ?? fallback.accent,
       overrides: { light: { ...raw.overrides?.light }, dark: { ...raw.overrides?.dark } },
+      autoSave: typeof raw.autoSave === "boolean" ? raw.autoSave : fallback.autoSave,
     };
   } catch {
     return fallback;

@@ -2,6 +2,14 @@
 
 Lịch sử các bản phát hành của KamiPanda. Nội dung của mỗi phiên bản được dùng làm release notes trên GitHub và hiển thị trong hộp thoại cập nhật của app.
 
+## [1.2.0] - 2026-09-30
+
+### Thêm mới
+- Tự động lưu: ghi chú được lưu ngay sau khi bạn ngừng gõ, khi chuyển ghi chú hoặc rời khỏi app. Bật/tắt trong Settings → Editor (mặc định bật).
+- Menu chuột phải trong cây file:
+  - Trên ghi chú / thư mục: Mở, Tạo ghi chú mới, Tạo thư mục mới, Đổi tên, Hiện trong Finder / File Explorer, Sao chép đường dẫn, Chuyển vào Thùng rác.
+  - Trên vùng trống: Tạo ghi chú mới, Tạo thư mục mới, Hiện thư mục trong Finder / File Explorer, Tải lại thư mục.
+
 ## [1.1.0] - 2026-09-30
 
 ### Thêm mới
