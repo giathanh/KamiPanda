@@ -69,7 +69,7 @@ File cài đặt sẽ nằm trong `src-tauri/target/release/bundle/`.
 
 ### Phát hành
 
-1. Thêm mục cho phiên bản mới vào đầu [CHANGELOG.md](CHANGELOG.md), ví dụ `## [1.2.0] - 2026-10-15`. Nội dung mục này sẽ thành release notes trên GitHub và hiện trong hộp thoại cập nhật của app. Workflow báo lỗi nếu thiếu mục này.
+1. Thêm mục cho phiên bản mới vào đầu [CHANGELOG.md](CHANGELOG.md), ví dụ `## [1.2.0] - 2026-10-15`, và mục đã dịch tương ứng vào [CHANGELOG.en.md](CHANGELOG.en.md), [CHANGELOG.zh.md](CHANGELOG.zh.md), [CHANGELOG.ja.md](CHANGELOG.ja.md). Cả 4 ngôn ngữ được gộp thành release notes trên GitHub; hộp thoại cập nhật của app chỉ hiện phần theo ngôn ngữ đang chọn (mặc định tiếng Anh nếu không có). Workflow báo lỗi nếu file nào thiếu mục này.
 2. Tăng `version` trong `package.json`, `src-tauri/tauri.conf.json` và `src-tauri/Cargo.toml`.
 3. Commit, rồi push tag `v<version>` để GitHub Actions build cho macOS và Windows và tạo bản release nháp:
 

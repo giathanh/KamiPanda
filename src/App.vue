@@ -8,6 +8,7 @@ import Icon from "./components/Icon.vue";
 import MarkdownEditor from "./components/MarkdownEditor.vue";
 import SettingsView from "./components/SettingsView.vue";
 import { resolvedMode, settings } from "./data/settings";
+import { t, type MessageKey } from "./i18n";
 import { showTreeMenu } from "./data/treeMenu";
 import { checkForUpdates } from "./data/updater";
 import {
@@ -38,18 +39,22 @@ const dark = computed(() => resolvedMode.value === "dark");
 const editor = ref<InstanceType<typeof MarkdownEditor>>();
 const format = ref<FormatState>({ bold: false, italic: false, code: false, strike: false, link: false, block: "p" });
 
-const modes: { id: ViewMode; label: string }[] = [
-  { id: "live", label: "Live" },
-  { id: "source", label: "Source" },
-  { id: "split", label: "Split" },
+const modes: { id: ViewMode; label: MessageKey }[] = [
+  { id: "live", label: "editor.live" },
+  { id: "source", label: "editor.source" },
+  { id: "split", label: "editor.split" },
 ];
 
-const railItems: { id: Panel; label: string; icon: string }[] = [
-  { id: "files", label: "Files", icon: "folder" },
-  { id: "outline", label: "Outline", icon: "outline" },
-  { id: "search", label: "Search", icon: "search" },
-  { id: "history", label: "History", icon: "history" },
+const railItems: { id: Panel; label: MessageKey; icon: string }[] = [
+  { id: "files", label: "panel.files", icon: "folder" },
+  { id: "outline", label: "panel.outline", icon: "outline" },
+  { id: "search", label: "panel.search", icon: "search" },
+  { id: "history", label: "panel.history", icon: "history" },
 ];
+const panelLabel = computed(() => t(railItems.find((i) => i.id === panel.value)!.label));
+
+/** The empty-state sentence around the bold folder name, which sits at a different spot in each language. */
+const selectNoteParts = computed(() => t("empty.selectNote", { name: "\0" }).split("\0"));
 
 const words = computed(() => {
   const text = (activeFile.value?.content ?? "").replace(/```[\s\S]*?```/g, " ").replace(/[#>*_`~\-[\]()!|]/g, " ");
@@ -130,13 +135,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 <template>
   <div class="app" :class="{ focus: focusMode }">
     <!-- Navigation rail -->
-    <nav v-if="!focusMode" class="rail" aria-label="Primary">
+    <nav v-if="!focusMode" class="rail" :aria-label="t('nav.primary')">
       <!-- Space for the native macOS traffic lights (overlay title bar). -->
       <div class="titlebar-space" data-tauri-drag-region />
-      <button class="icon-btn lg" :aria-label="sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'" @click="sidebarOpen = !sidebarOpen">
+      <button class="icon-btn lg" :aria-label="sidebarOpen ? t('nav.collapseSidebar') : t('nav.expandSidebar')" @click="sidebarOpen = !sidebarOpen">
         <Icon name="menu" :size="22" />
       </button>
-      <button class="open-folder" aria-label="Open folder" title="Open folder (⌘O)" @click="openWorkspace()">
+      <button class="open-folder" :aria-label="t('nav.openFolder')" :title="t('nav.openFolderShortcut')" @click="openWorkspace()">
         <Icon name="folderOpen" :size="24" />
       </button>
       <div class="rail-items">
@@ -148,18 +153,18 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           @click="selectPanel(item.id)"
         >
           <span class="indicator"><Icon :name="item.icon" :size="22" /></span>
-          <span class="rail-label">{{ item.label }}</span>
+          <span class="rail-label">{{ t(item.label) }}</span>
         </button>
       </div>
       <div class="grow" data-tauri-drag-region />
-      <button class="icon-btn lg" :aria-label="dark ? 'Switch to light theme' : 'Switch to dark theme'" @click="settings.theme = dark ? 'light' : 'dark'">
+      <button class="icon-btn lg" :aria-label="dark ? t('nav.lightTheme') : t('nav.darkTheme')" @click="settings.theme = dark ? 'light' : 'dark'">
         <Icon :name="dark ? 'sun' : 'moon'" :size="22" />
       </button>
       <button
         class="icon-btn lg"
         :class="{ active: settingsOpen }"
-        aria-label="Settings"
-        title="Settings (⌘,)"
+        :aria-label="t('nav.settings')"
+        :title="t('nav.settingsShortcut')"
         :aria-pressed="settingsOpen"
         @click="settingsOpen = !settingsOpen"
       >
@@ -168,28 +173,28 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
     </nav>
 
     <!-- Side panel -->
-    <aside v-if="!focusMode && sidebarOpen" class="side" :aria-label="panel">
+    <aside v-if="!focusMode && sidebarOpen" class="side" :aria-label="panelLabel">
       <div class="side-header" data-tauri-drag-region>
         <div class="side-title">
-          <span class="overline">{{ panel === "files" ? "Workspace" : activeFile?.name }}</span>
+          <span class="overline">{{ panel === "files" ? t("panel.workspace") : activeFile?.name }}</span>
           <span class="headline" :title="panel === 'files' ? rootPath ?? undefined : undefined">
-            {{ panel === "files" ? rootName || "No folder" : railItems.find((i) => i.id === panel)!.label }}
+            {{ panel === "files" ? rootName || t("panel.noFolder") : panelLabel }}
           </span>
         </div>
         <template v-if="panel === 'files' && rootPath">
-          <button class="icon-btn" aria-label="New file" title="New file" @click="createFile()"><Icon name="plus" /></button>
-          <button class="icon-btn" aria-label="Reload folder" title="Reload folder" @click="refresh()"><Icon name="reset" /></button>
+          <button class="icon-btn" :aria-label="t('panel.newFile')" :title="t('panel.newFile')" @click="createFile()"><Icon name="plus" /></button>
+          <button class="icon-btn" :aria-label="t('panel.reloadFolder')" :title="t('panel.reloadFolder')" @click="refresh()"><Icon name="reset" /></button>
         </template>
       </div>
 
       <div v-if="panel === 'files' && rootPath" role="tree" class="tree files" @contextmenu.prevent="showTreeMenu()">
         <FileTree :nodes="tree" />
-        <p v-if="!tree.length" class="empty">No Markdown files in this folder.</p>
+        <p v-if="!tree.length" class="empty">{{ t("panel.noMarkdown") }}</p>
       </div>
 
       <div v-else-if="panel === 'files'" class="tree">
-        <p class="empty">Open a folder to browse its Markdown files.</p>
-        <button class="tonal-btn" @click="openWorkspace()"><Icon name="folderOpen" :size="18" />Open folder</button>
+        <p class="empty">{{ t("panel.openToBrowse") }}</p>
+        <button class="tonal-btn" @click="openWorkspace()"><Icon name="folderOpen" :size="18" />{{ t("nav.openFolder") }}</button>
       </div>
 
       <div v-else-if="panel === 'outline'" class="tree">
@@ -201,12 +206,12 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :class="`lvl${h.level}`"
           @click="jumpToLine(h.line)"
         >
-          {{ h.text || "Untitled" }}
+          {{ h.text || t("panel.untitled") }}
         </button>
-        <p v-if="!outline.length" class="empty">No headings yet.</p>
+        <p v-if="!outline.length" class="empty">{{ t("panel.noHeadings") }}</p>
       </div>
 
-      <p v-else class="empty">{{ panel === "search" ? "Search" : "History" }} is not available yet.</p>
+      <p v-else class="empty">{{ t("panel.notAvailable", { panel: panelLabel }) }}</p>
     </aside>
 
     <!-- Editor pane -->
@@ -218,10 +223,10 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       <header class="pane-header" data-tauri-drag-region />
       <div class="placeholder">
         <Icon name="folderOpen" :size="40" class="outline-color" />
-        <p v-if="!rootPath">Open a folder to start writing.</p>
-        <p v-else>Select a note from <strong>{{ rootName }}</strong>, or create a new one.</p>
-        <button v-if="!rootPath" class="tonal-btn" @click="openWorkspace()"><Icon name="folderOpen" :size="18" />Open folder</button>
-        <button v-else class="tonal-btn" @click="createFile()"><Icon name="plus" :size="18" />New note</button>
+        <p v-if="!rootPath">{{ t("empty.openToStart") }}</p>
+        <p v-else>{{ selectNoteParts[0] }}<strong>{{ rootName }}</strong>{{ selectNoteParts[1] }}</p>
+        <button v-if="!rootPath" class="tonal-btn" @click="openWorkspace()"><Icon name="folderOpen" :size="18" />{{ t("nav.openFolder") }}</button>
+        <button v-else class="tonal-btn" @click="createFile()"><Icon name="plus" :size="18" />{{ t("empty.newNote") }}</button>
         <p v-if="error" class="error">{{ error }}</p>
       </div>
     </main>
@@ -233,20 +238,20 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
             <span class="muted">{{ activeFolder.name }}</span>
             <Icon name="chevronRight" :size="16" :stroke-width="2" class="outline-color" />
           </template>
-          <span class="doc-name" title="Double-click to rename" @dblclick="startRename">{{ activeFile.name }}</span>
+          <span class="doc-name" :title="t('editor.renameHint')" @dblclick="startRename">{{ activeFile.name }}</span>
         </div>
-        <div role="group" aria-label="Editor mode" class="segmented">
+        <div role="group" :aria-label="t('editor.mode')" class="segmented">
           <button v-for="m in modes" :key="m.id" :aria-pressed="mode === m.id" :class="{ on: mode === m.id }" @click="mode = m.id">
             <Icon v-if="mode === m.id" name="check" :size="16" :stroke-width="2.2" />
-            {{ m.label }}
+            {{ t(m.label) }}
           </button>
         </div>
         <div style="width: 8px" />
         <button
           class="icon-btn"
-          :aria-label="focusMode ? 'Exit focus mode' : 'Focus mode'"
+          :aria-label="focusMode ? t('editor.exitFocusMode') : t('editor.focusMode')"
           :aria-pressed="focusMode"
-          title="Focus mode (⇧⌘F)"
+          :title="t('editor.focusModeShortcut')"
           @click="focusMode = !focusMode"
         >
           <Icon name="focus" />
@@ -275,10 +280,10 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <span>Markdown</span><span>UTF-8</span><span>LF</span>
         <span class="grow" />
         <span v-if="error" class="error" :title="error" @click="error = null">{{ error }}</span>
-        <span>{{ words }} {{ words === 1 ? "word" : "words" }}</span>
-        <span>{{ readMinutes }} min read</span>
-        <span v-if="isDirty(activeFile)" class="state edited">{{ settings.autoSave ? "Edited" : "Edited · ⌘S to save" }}</span>
-        <span v-else class="state saved"><Icon name="check" :size="14" :stroke-width="2.4" />Saved</span>
+        <span>{{ t(words === 1 ? "status.word" : "status.words", { n: words }) }}</span>
+        <span>{{ t("status.readTime", { n: readMinutes }) }}</span>
+        <span v-if="isDirty(activeFile)" class="state edited">{{ settings.autoSave ? t("status.edited") : t("status.editedManual") }}</span>
+        <span v-else class="state saved"><Icon name="check" :size="14" :stroke-width="2.4" />{{ t("status.saved") }}</span>
       </footer>
     </main>
   </div>

@@ -3,6 +3,7 @@ import { syntaxTree } from "@codemirror/language";
 import { type EditorState, type Range, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import { marked } from "marked";
+import { t } from "../i18n";
 
 /*
  * Live-preview tables: a GFM table renders as an editable grid. Every edit is
@@ -193,16 +194,16 @@ class TableWidget extends WidgetType {
 
     const addCol = document.createElement("button");
     addCol.className = "cm-table-add cm-table-add-col";
-    addCol.title = "Add column";
-    addCol.setAttribute("aria-label", "Add column");
+    addCol.title = t("widget.addColumn");
+    addCol.setAttribute("aria-label", addCol.title);
     addCol.textContent = "+";
     addCol.addEventListener("mousedown", (e) => e.preventDefault());
     addCol.addEventListener("click", () => addColumn(dom, view));
 
     const addRowBtn = document.createElement("button");
     addRowBtn.className = "cm-table-add cm-table-add-row";
-    addRowBtn.title = "Add row";
-    addRowBtn.setAttribute("aria-label", "Add row");
+    addRowBtn.title = t("widget.addRow");
+    addRowBtn.setAttribute("aria-label", addRowBtn.title);
     addRowBtn.textContent = "+";
     addRowBtn.addEventListener("mousedown", (e) => e.preventDefault());
     addRowBtn.addEventListener("click", () => addRow(dom, view));

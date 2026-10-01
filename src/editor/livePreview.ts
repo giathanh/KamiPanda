@@ -2,6 +2,7 @@ import { syntaxTree } from "@codemirror/language";
 import type { EditorState, Range } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
+import { t } from "../i18n";
 
 /*
  * Live preview: markdown renders in place, and the syntax markers of an element
@@ -37,7 +38,7 @@ class CheckboxWidget extends WidgetType {
     box.type = "checkbox";
     box.checked = this.checked;
     box.className = "cm-task-box";
-    box.setAttribute("aria-label", this.checked ? "Mark as not done" : "Mark as done");
+    box.setAttribute("aria-label", this.checked ? t("widget.markNotDone") : t("widget.markDone"));
     box.addEventListener("mousedown", (e) => {
       e.preventDefault();
       // `[ ]` / `[x]` — the state character sits right after the bracket.
@@ -116,7 +117,7 @@ class CodeHeaderWidget extends WidgetType {
     label.textContent = this.lang;
     const copy = document.createElement("button");
     copy.className = "cm-code-copy";
-    copy.setAttribute("aria-label", "Copy code");
+    copy.setAttribute("aria-label", t("widget.copyCode"));
     copy.innerHTML = copyIcon;
     copy.addEventListener("mousedown", (e) => e.preventDefault());
     copy.addEventListener("click", () => {

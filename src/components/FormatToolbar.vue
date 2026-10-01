@@ -14,19 +14,14 @@ import {
   type BlockKind,
   type FormatState,
 } from "../editor/formatting";
+import { t, type MessageKey } from "../i18n";
 import Icon from "./Icon.vue";
 
 const props = defineProps<{ view?: EditorView; state: FormatState }>();
 
-const blockLabels: Record<BlockKind, string> = {
-  p: "Paragraph",
-  h1: "Heading 1",
-  h2: "Heading 2",
-  h3: "Heading 3",
-  h4: "Heading 4",
-  h5: "Heading 5",
-  h6: "Heading 6",
-};
+function blockLabel(kind: BlockKind) {
+  return kind === "p" ? t("format.paragraph") : t("format.heading", { n: kind.slice(1) });
+}
 const blockOptions: BlockKind[] = ["p", "h1", "h2", "h3"];
 
 const openMenu = ref<"block" | "insert" | null>(null);
@@ -47,20 +42,20 @@ function onOutside(e: MouseEvent) {
 onMounted(() => document.addEventListener("mousedown", onOutside));
 onBeforeUnmount(() => document.removeEventListener("mousedown", onOutside));
 
-const insertItems = [
-  { label: "Code block", icon: "code", fn: insertCodeBlock },
-  { label: "Quote", icon: "quote", fn: insertQuote },
-  { label: "Table", icon: "table", fn: insertTable },
-  { label: "Divider", icon: "divider", fn: insertDivider },
+const insertItems: { label: MessageKey; icon: string; fn: (v: EditorView) => unknown }[] = [
+  { label: "format.codeBlock", icon: "code", fn: insertCodeBlock },
+  { label: "format.quote", icon: "quote", fn: insertQuote },
+  { label: "format.table", icon: "table", fn: insertTable },
+  { label: "format.divider", icon: "divider", fn: insertDivider },
 ];
 </script>
 
 <template>
   <!-- mousedown.prevent keeps focus (and the selection) in the editor. -->
-  <div ref="root" class="toolbar" role="toolbar" aria-label="Formatting" @mousedown.prevent>
+  <div ref="root" class="toolbar" role="toolbar" :aria-label="t('format.toolbar')" @mousedown.prevent>
     <div class="menu-anchor">
       <button class="block-select" :aria-expanded="openMenu === 'block'" @click="toggle('block')">
-        {{ blockLabels[state.block] }}
+        {{ blockLabel(state.block) }}
         <Icon name="chevronDown" :size="18" :stroke-width="2" />
       </button>
       <div v-if="openMenu === 'block'" class="menu" role="menu">
@@ -72,47 +67,47 @@ const insertItems = [
           :class="['menu-item', `menu-${b}`, { selected: state.block === b }]"
           @click="run((v) => setBlock(v, b))"
         >
-          {{ blockLabels[b] }}
+          {{ blockLabel(b) }}
         </button>
       </div>
     </div>
 
     <span class="sep" />
-    <button class="tool" :class="{ on: state.bold }" aria-label="Bold" title="Bold (⌘B)" :aria-pressed="state.bold" @click="run((v) => toggleInline(v, 'bold'))">
+    <button class="tool" :class="{ on: state.bold }" :aria-label="t('format.bold')" :title="`${t('format.bold')} (⌘B)`" :aria-pressed="state.bold" @click="run((v) => toggleInline(v, 'bold'))">
       <Icon name="bold" :stroke-width="state.bold ? 2.2 : 1.8" />
     </button>
-    <button class="tool" :class="{ on: state.italic }" aria-label="Italic" title="Italic (⌘I)" :aria-pressed="state.italic" @click="run((v) => toggleInline(v, 'italic'))">
+    <button class="tool" :class="{ on: state.italic }" :aria-label="t('format.italic')" :title="`${t('format.italic')} (⌘I)`" :aria-pressed="state.italic" @click="run((v) => toggleInline(v, 'italic'))">
       <Icon name="italic" />
     </button>
-    <button class="tool" :class="{ on: state.code }" aria-label="Inline code" title="Inline code (⌘E)" :aria-pressed="state.code" @click="run((v) => toggleInline(v, 'code'))">
+    <button class="tool" :class="{ on: state.code }" :aria-label="t('format.inlineCode')" :title="`${t('format.inlineCode')} (⌘E)`" :aria-pressed="state.code" @click="run((v) => toggleInline(v, 'code'))">
       <Icon name="code" />
     </button>
-    <button class="tool" :class="{ on: state.link }" aria-label="Link" title="Link (⌘K)" @click="run(insertLink)">
+    <button class="tool" :class="{ on: state.link }" :aria-label="t('format.link')" :title="`${t('format.link')} (⌘K)`" @click="run(insertLink)">
       <Icon name="link" />
     </button>
 
     <span class="sep" />
-    <button class="tool" aria-label="Bulleted list" title="Bulleted list" @click="run((v) => toggleList(v, 'bullet'))">
+    <button class="tool" :aria-label="t('format.bulletList')" :title="t('format.bulletList')" @click="run((v) => toggleList(v, 'bullet'))">
       <Icon name="bulletList" />
     </button>
-    <button class="tool" aria-label="Task list" title="Task list" @click="run((v) => toggleList(v, 'task'))">
+    <button class="tool" :aria-label="t('format.taskList')" :title="t('format.taskList')" @click="run((v) => toggleList(v, 'task'))">
       <Icon name="taskList" />
     </button>
-    <button class="tool" aria-label="Image" title="Image" @click="run(insertImage)">
+    <button class="tool" :aria-label="t('format.image')" :title="t('format.image')" @click="run(insertImage)">
       <Icon name="image" />
     </button>
-    <button class="tool" aria-label="Table" title="Table" @click="run(insertTable)">
+    <button class="tool" :aria-label="t('format.table')" :title="t('format.table')" @click="run(insertTable)">
       <Icon name="table" />
     </button>
 
     <div class="menu-anchor">
-      <button class="fab" aria-label="Insert block" title="Insert block" :aria-expanded="openMenu === 'insert'" @click="toggle('insert')">
+      <button class="fab" :aria-label="t('format.insertBlock')" :title="t('format.insertBlock')" :aria-expanded="openMenu === 'insert'" @click="toggle('insert')">
         <Icon name="plus" :size="22" :stroke-width="2" />
       </button>
       <div v-if="openMenu === 'insert'" class="menu menu-end" role="menu">
         <button v-for="item in insertItems" :key="item.label" role="menuitem" class="menu-item" @click="run(item.fn)">
           <Icon :name="item.icon" :size="18" />
-          {{ item.label }}
+          {{ t(item.label) }}
         </button>
       </div>
     </div>

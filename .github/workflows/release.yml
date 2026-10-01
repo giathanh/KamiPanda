@@ -47,16 +47,24 @@ jobs:
         shell: bash
         run: |
           version=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          notes=$(awk -v v="$version" '
-            /^## \[/ { if (found) exit; found = index($0, "[" v "]") > 0; next }
-            found' CHANGELOG.md)
-          if [ -z "$(echo "$notes" | tr -d '[:space:]')" ]; then
-            echo "::error::CHANGELOG.md has no entry for $version"
-            exit 1
-          fi
+          # Every language goes into one body. The app shows only the part after its own
+          # `<!-- lang:xx -->` marker; GitHub shows them all, each under its heading.
+          body=""
+          for entry in "vi:CHANGELOG.md:Tiếng Việt" "en:CHANGELOG.en.md:English" "zh:CHANGELOG.zh.md:简体中文" "ja:CHANGELOG.ja.md:日本語"; do
+            IFS=: read -r lang file title <<< "$entry"
+            notes=$(awk -v v="$version" '
+              /^## \[/ { if (found) exit; found = index($0, "[" v "]") > 0; next }
+              found' "$file")
+            if [ -z "$(echo "$notes" | tr -d '[:space:]')" ]; then
+              echo "::error::$file has no entry for $version"
+              exit 1
+            fi
+            printf -v section '<!-- lang:%s -->\n## %s\n%s\n\n' "$lang" "$title" "$notes"
+            body+=$section
+          done
           {
             echo "body<<CHANGELOG_EOF"
-            echo "$notes"
+            echo "$body"
             echo "CHANGELOG_EOF"
           } >> "$GITHUB_OUTPUT"
 
