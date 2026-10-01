@@ -2,6 +2,14 @@
 
 Lịch sử các bản phát hành của KamiPanda. Nội dung của mỗi phiên bản được dùng làm release notes trên GitHub và hiển thị trong hộp thoại cập nhật của app.
 
+## [1.3.0] - 2026-10-01
+
+### Thêm mới
+- Menu chuột phải trong cây file có icon cho từng mục (tự đổi màu theo giao diện sáng / tối của hệ thống).
+
+### Sửa lỗi
+- Các lệnh trong menu chuột phải (Mở, Tạo ghi chú, Đổi tên, Chuyển vào Thùng rác…) không thực hiện gì khi bấm.
+
 ## [1.2.0] - 2026-09-30
 
 ### Thêm mới
