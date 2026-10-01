@@ -5,6 +5,7 @@ import { languages } from "@codemirror/language-data";
 import { Compartment, EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
+import { settings } from "../data/settings";
 import { formatState, insertLink, toggleInline, type FormatState } from "../editor/formatting";
 import { livePreview, livePreviewAttrs } from "../editor/livePreview";
 import { cellTypingEvent, tablePreview } from "../editor/table";
@@ -90,6 +91,12 @@ watch(
 watch(
   () => props.mode,
   (mode) => view.value?.dispatch({ effects: modeCompartment.reconfigure(modeExtension(mode)) }),
+);
+
+// Zoom only changes a CSS variable, so tell CodeMirror its line heights are stale.
+watch(
+  () => settings.editorZoom,
+  () => requestAnimationFrame(() => view.value?.requestMeasure()),
 );
 
 defineExpose({ view });

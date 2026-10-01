@@ -2,6 +2,9 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { tags as t } from "@lezer/highlight";
 
+/** Scales a pixel size by the editor zoom level (set as --editor-zoom in data/settings.ts). */
+const z = (px: number) => `calc(${px}px * var(--editor-zoom, 1))`;
+
 // All colors come from the CSS custom properties in styles/theme.css, so the
 // editor follows the light/dark switch without being reconfigured.
 export const editorTheme = EditorView.theme({
@@ -9,7 +12,7 @@ export const editorTheme = EditorView.theme({
     height: "100%",
     color: "var(--md-on-surface)",
     backgroundColor: "transparent",
-    fontSize: "14px",
+    fontSize: z(14),
   },
   "&.cm-focused": { outline: "none" },
   ".cm-scroller": {
@@ -18,7 +21,7 @@ export const editorTheme = EditorView.theme({
     overflow: "auto",
   },
   ".cm-content": {
-    maxWidth: "760px",
+    maxWidth: z(760),
     margin: "0 auto",
     padding: "28px 24px 120px",
     caretColor: "var(--md-primary)",
@@ -33,10 +36,10 @@ export const editorTheme = EditorView.theme({
   // ---- Live preview -----------------------------------------------------
   "&.cm-live .cm-scroller": {
     fontFamily: "var(--font-doc)",
-    fontSize: "19px",
+    fontSize: z(19),
     lineHeight: "1.55",
   },
-  "&.cm-live .cm-content": { maxWidth: "728px" },
+  "&.cm-live .cm-content": { maxWidth: z(728) },
   "&.cm-live .cm-md-mark": {
     fontFamily: "var(--font-mono)",
     fontSize: "0.79em",
@@ -46,11 +49,11 @@ export const editorTheme = EditorView.theme({
     opacity: "0.7",
   },
   "&.cm-live .cm-h": { fontWeight: "600", lineHeight: "1.2" },
-  "&.cm-live .cm-h1": { fontSize: "46px", lineHeight: "1.1", letterSpacing: "-0.8px" },
-  "&.cm-live .cm-h2": { fontSize: "28px", paddingTop: "20px" },
-  "&.cm-live .cm-h3": { fontSize: "23px", paddingTop: "14px" },
-  "&.cm-live .cm-h4, &.cm-live .cm-h5, &.cm-live .cm-h6": { fontSize: "20px", paddingTop: "8px" },
-  "&.cm-live .cm-blank": { lineHeight: "12px", fontSize: "12px" },
+  "&.cm-live .cm-h1": { fontSize: z(46), lineHeight: "1.1", letterSpacing: "-0.8px" },
+  "&.cm-live .cm-h2": { fontSize: z(28), paddingTop: "20px" },
+  "&.cm-live .cm-h3": { fontSize: z(23), paddingTop: "14px" },
+  "&.cm-live .cm-h4, &.cm-live .cm-h5, &.cm-live .cm-h6": { fontSize: z(20), paddingTop: "8px" },
+  "&.cm-live .cm-blank": { lineHeight: z(12), fontSize: z(12) },
 
   "&.cm-live .cm-strong": { fontWeight: "700" },
   "&.cm-live .cm-em": { fontStyle: "italic" },
@@ -71,11 +74,11 @@ export const editorTheme = EditorView.theme({
 
   "&.cm-live .cm-bullet": { color: "var(--md-primary)", display: "inline-block", width: "1.1em" },
   "&.cm-live .cm-ordinal": { color: "var(--md-primary)", fontVariantNumeric: "tabular-nums" },
-  "&.cm-live .cm-task": { fontSize: "18px" },
+  "&.cm-live .cm-task": { fontSize: z(18) },
   "&.cm-live .cm-task-done": { color: "var(--md-on-surface-variant)" },
   "&.cm-live .cm-task-box": {
-    width: "18px",
-    height: "18px",
+    width: z(18),
+    height: z(18),
     margin: "0 12px 0 0",
     verticalAlign: "-3px",
     accentColor: "var(--md-primary)",
@@ -97,7 +100,7 @@ export const editorTheme = EditorView.theme({
   "&.cm-live .cm-image img": { maxWidth: "100%", borderRadius: "12px", verticalAlign: "top" },
   "&.cm-live .cm-image-missing": {
     fontFamily: "var(--font-ui)",
-    fontSize: "13px",
+    fontSize: z(13),
     padding: "4px 10px",
     borderRadius: "8px",
     color: "var(--md-on-surface-variant)",
@@ -106,7 +109,7 @@ export const editorTheme = EditorView.theme({
 
   "&.cm-live .cm-codeblock": {
     fontFamily: "var(--font-mono)",
-    fontSize: "14px",
+    fontSize: z(14),
     lineHeight: "1.7",
     backgroundColor: "var(--md-surface-low)",
     padding: "0 16px",
@@ -114,7 +117,7 @@ export const editorTheme = EditorView.theme({
   "&.cm-live .cm-codeblock-first": { borderRadius: "16px 16px 0 0", paddingTop: "6px", marginTop: "2px" },
   "&.cm-live .cm-codeblock-last": { borderRadius: "0 0 16px 16px", paddingBottom: "10px" },
   "&.cm-live .cm-codeblock-first.cm-codeblock-last": { borderRadius: "16px" },
-  "&.cm-live .cm-codeblock-fence-hidden": { lineHeight: "6px", fontSize: "6px" },
+  "&.cm-live .cm-codeblock-fence-hidden": { lineHeight: z(6), fontSize: z(6) },
   "&.cm-live .cm-code-header": {
     display: "inline-flex",
     alignItems: "center",
@@ -124,7 +127,7 @@ export const editorTheme = EditorView.theme({
   },
   "&.cm-live .cm-code-lang": {
     flexGrow: "1",
-    fontSize: "12px",
+    fontSize: z(12),
     fontWeight: "600",
     letterSpacing: "0.4px",
     color: "var(--md-on-surface-variant)",
@@ -146,7 +149,7 @@ export const editorTheme = EditorView.theme({
     gap: "4px",
     padding: "6px 0",
     fontFamily: "var(--font-ui)",
-    fontSize: "15px",
+    fontSize: z(15),
     lineHeight: "1.45",
   },
   "&.cm-live .cm-table-scroll": { overflowX: "auto" },
@@ -170,7 +173,7 @@ export const editorTheme = EditorView.theme({
   "&.cm-live .cm-table-cell": { padding: "7px 12px", minHeight: "1.45em", outline: "none", cursor: "text", whiteSpace: "pre-wrap" },
   "&.cm-live .cm-table-cell:focus": {
     fontFamily: "var(--font-mono)",
-    fontSize: "13px",
+    fontSize: z(13),
     boxShadow: "inset 0 0 0 2px var(--md-primary)",
     backgroundColor: "var(--md-surface-lowest)",
   },
@@ -190,7 +193,7 @@ export const editorTheme = EditorView.theme({
     borderRadius: "8px",
     padding: "0",
     fontFamily: "var(--font-ui)",
-    fontSize: "16px",
+    fontSize: z(16),
     lineHeight: "1",
     color: "var(--md-on-surface-variant)",
     backgroundColor: "transparent",

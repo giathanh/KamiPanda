@@ -7,7 +7,7 @@ import FormatToolbar from "./components/FormatToolbar.vue";
 import Icon from "./components/Icon.vue";
 import MarkdownEditor from "./components/MarkdownEditor.vue";
 import SettingsView from "./components/SettingsView.vue";
-import { resolvedMode, settings } from "./data/settings";
+import { resetZoom, resolvedMode, settings, ZOOM_MAX, ZOOM_MIN, zoomIn, zoomOut } from "./data/settings";
 import { showTreeMenu } from "./data/treeMenu";
 import { checkForUpdates } from "./data/updater";
 import {
@@ -111,6 +111,15 @@ function onKey(e: KeyboardEvent) {
   } else if (mod && e.shiftKey && e.key.toLowerCase() === "f") {
     e.preventDefault();
     focusMode.value = !focusMode.value;
+  } else if (mod && (e.key === "=" || e.key === "+")) {
+    e.preventDefault();
+    zoomIn();
+  } else if (mod && (e.key === "-" || e.key === "_")) {
+    e.preventDefault();
+    zoomOut();
+  } else if (mod && e.key === "0") {
+    e.preventDefault();
+    resetZoom();
   } else if (mod && e.key === ",") {
     e.preventDefault();
     settingsOpen.value = !settingsOpen.value;
@@ -279,6 +288,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <span>{{ readMinutes }} min read</span>
         <span v-if="isDirty(activeFile)" class="state edited">{{ settings.autoSave ? "Edited" : "Edited · ⌘S to save" }}</span>
         <span v-else class="state saved"><Icon name="check" :size="14" :stroke-width="2.4" />Saved</span>
+        <div role="group" aria-label="Zoom" class="zoom">
+          <button aria-label="Zoom out" title="Zoom out (⌘−)" :disabled="settings.editorZoom <= ZOOM_MIN" @click="zoomOut">−</button>
+          <button class="zoom-level" title="Reset zoom (⌘0)" @click="resetZoom">{{ Math.round(settings.editorZoom * 100) }}%</button>
+          <button aria-label="Zoom in" title="Zoom in (⌘+)" :disabled="settings.editorZoom >= ZOOM_MAX" @click="zoomIn">+</button>
+        </div>
       </footer>
     </main>
   </div>
@@ -571,6 +585,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   font-size: 18px;
   line-height: 1.55;
   user-select: text;
+  zoom: var(--editor-zoom, 1);
 }
 
 .preview :deep(h1) {
@@ -684,6 +699,34 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 
 .saved {
   color: var(--md-primary);
+}
+
+.zoom {
+  display: flex;
+  align-items: center;
+  margin-right: -8px;
+}
+
+.zoom button {
+  height: 24px;
+  min-width: 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--md-on-surface-variant);
+}
+
+.zoom .zoom-level {
+  min-width: 44px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.zoom button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+}
+
+.zoom button:disabled {
+  opacity: 0.38;
 }
 
 .error {
