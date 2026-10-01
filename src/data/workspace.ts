@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { ask, open } from "@tauri-apps/plugin-dialog";
 import { computed, reactive, ref, watch } from "vue";
+import { t } from "../i18n";
 import { settings } from "./settings";
 
 export interface DocFile {
@@ -138,26 +139,23 @@ async function load(path: string) {
 export async function openWorkspace() {
   await flushAutoSave();
   if (hasUnsaved.value) {
-    const discard = await ask(
-      "You have unsaved changes. Open another folder and discard them?",
-      {
-        title: "Unsaved changes",
-        kind: "warning",
-        okLabel: "Discard",
-      },
-    );
+    const discard = await ask(t("dialog.unsavedOpen"), {
+      title: t("dialog.unsavedTitle"),
+      kind: "warning",
+      okLabel: t("dialog.discard"),
+    });
     if (!discard) return;
   }
   const picked = await open({
     directory: true,
     multiple: false,
-    title: "Open folder",
+    title: t("dialog.openFolder"),
   });
   if (typeof picked !== "string") return;
   try {
     await load(picked);
   } catch (e) {
-    error.value = `Could not open ${picked}: ${e}`;
+    error.value = t("error.open", { name: picked, error: String(e) });
   }
 }
 
@@ -168,7 +166,7 @@ export async function selectFile(f: DocFile) {
       f.content = f.savedContent = text;
       f.loaded = true;
     } catch (e) {
-      error.value = `Could not read ${f.name}: ${e}`;
+      error.value = t("error.read", { name: f.name, error: String(e) });
       return;
     }
   }
@@ -186,7 +184,7 @@ export function saveFile(f: DocFile) {
       await invoke("write_text", { path: f.id, content });
       f.savedContent = content;
     } catch (e) {
-      error.value = `Could not save ${f.name}: ${e}`;
+      error.value = t("error.save", { name: f.name, error: String(e) });
     }
   });
   return saving;
@@ -266,7 +264,7 @@ export async function renameNode(node: TreeNode, newName: string) {
     node.name = name;
     error.value = null;
   } catch (e) {
-    error.value = `Could not rename ${node.name}: ${e}`;
+    error.value = t("error.rename", { name: node.name, error: String(e) });
   }
 }
 
@@ -295,7 +293,7 @@ export async function createFile(folder?: Folder | null) {
       renamingId.value = f.id;
     }
   } catch (e) {
-    error.value = `Could not create a note: ${e}`;
+    error.value = t("error.createNote", { error: String(e) });
   }
 }
 
@@ -307,7 +305,7 @@ export async function createFolder(folder?: Folder | null) {
     await revealNew(path);
     renamingId.value = path;
   } catch (e) {
-    error.value = `Could not create a folder: ${e}`;
+    error.value = t("error.createFolder", { error: String(e) });
   }
 }
 
@@ -317,10 +315,10 @@ export async function trashNode(node: TreeNode) {
     node.kind === "file"
       ? isDirty(node)
       : allFiles(node.children).some(isDirty);
-  const what = node.kind === "file" ? "note" : "folder and everything in it";
+  const question = t(node.kind === "file" ? "dialog.trashNote" : "dialog.trashFolder", { name: node.name });
   const ok = await ask(
-    `Move the ${what} “${node.name}” to the Trash?${unsaved ? "\n\nUnsaved changes will be lost." : ""}`,
-    { title: "Move to Trash", kind: "warning", okLabel: "Move to Trash" },
+    unsaved ? `${question}\n\n${t("dialog.unsavedLost")}` : question,
+    { title: t("menu.trash"), kind: "warning", okLabel: t("menu.trash") },
   );
   if (!ok) return;
   try {
@@ -328,7 +326,7 @@ export async function trashNode(node: TreeNode) {
     await refresh();
     error.value = null;
   } catch (e) {
-    error.value = `Could not delete ${node.name}: ${e}`;
+    error.value = t("error.delete", { name: node.name, error: String(e) });
   }
 }
 

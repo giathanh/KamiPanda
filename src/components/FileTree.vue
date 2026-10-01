@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { showTreeMenu } from "../data/treeMenu";
 import { activeId, isDirty, renameNode, renamingId, selectFile, trashNode, type Folder, type TreeNode } from "../data/workspace";
+import { t } from "../i18n";
 import Icon from "./Icon.vue";
 
 /** `parent` is the folder holding `nodes`, absent at the workspace root. */
@@ -38,7 +39,7 @@ function commit(node: TreeNode, e: Event) {
         :ref="focusInput"
         class="rename"
         :value="node.name"
-        :aria-label="node.kind === 'folder' ? 'Folder name' : 'File name'"
+        :aria-label="node.kind === 'folder' ? t('tree.folderName') : t('tree.fileName')"
         spellcheck="false"
         @keydown.enter.prevent="commit(node, $event)"
         @keydown.esc.prevent.stop="renamingId = null"
@@ -78,7 +79,7 @@ function commit(node: TreeNode, e: Event) {
       :class="{ current: node.id === activeId }"
       :aria-current="node.id === activeId ? 'page' : undefined"
       :style="{ paddingLeft: `${12 + (depth ?? 0) * 24}px` }"
-      title="Double-click or press F2 to rename, right-click for more"
+      :title="t('tree.fileHint')"
       @click="selectFile(node)"
       @dblclick="renamingId = node.id"
       @contextmenu.prevent.stop="showTreeMenu(node, parent)"
@@ -87,7 +88,7 @@ function commit(node: TreeNode, e: Event) {
     >
       <Icon name="file" :size="18" :class="node.id === activeId ? '' : 'muted'" />
       <span class="file-name">{{ node.name }}</span>
-      <span v-if="isDirty(node)" class="dirty" aria-label="Unsaved changes" />
+      <span v-if="isDirty(node)" class="dirty" :aria-label="t('tree.unsaved')" />
     </button>
   </template>
 </template>

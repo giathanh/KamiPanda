@@ -2,6 +2,8 @@
 
 Lịch sử các bản phát hành của KamiPanda. Nội dung của mỗi phiên bản được dùng làm release notes trên GitHub và hiển thị trong hộp thoại cập nhật của app.
 
+Đây là bản gốc (tiếng Việt). Bản dịch: [English](CHANGELOG.en.md) · [简体中文](CHANGELOG.zh.md) · [日本語](CHANGELOG.ja.md). Mỗi phiên bản phải có mục tương ứng trong cả 4 file; app hiển thị release notes theo ngôn ngữ người dùng chọn.
+
 ## [1.3.0] - 2026-10-01
 
 ### Thêm mới

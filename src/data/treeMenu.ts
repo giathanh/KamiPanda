@@ -3,6 +3,7 @@ import { Image } from "@tauri-apps/api/image";
 import type { Resource } from "@tauri-apps/api/core";
 import { iconSvg } from "./icons";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { t } from "../i18n";
 import {
   createFile,
   createFolder,
@@ -16,7 +17,7 @@ import {
   type TreeNode,
 } from "./workspace";
 
-const revealLabel = /Mac/.test(navigator.userAgent) ? "Reveal in Finder" : "Show in File Explorer";
+const revealKey = /Mac/.test(navigator.userAgent) ? "menu.revealMac" : "menu.revealOther";
 const separator = "separator" as const;
 
 /** Native objects behind the last menu shown, released when the next one opens. */
@@ -64,11 +65,11 @@ async function buildItem({ icon, ...item }: Item) {
 }
 
 function reveal(path: string) {
-  revealItemInDir(path).catch((e) => (error.value = `Could not reveal ${path}: ${e}`));
+  revealItemInDir(path).catch((e) => (error.value = t("error.reveal", { name: path, error: String(e) })));
 }
 
 function copyPath(path: string) {
-  navigator.clipboard.writeText(path).catch((e) => (error.value = `Could not copy the path: ${e}`));
+  navigator.clipboard.writeText(path).catch((e) => (error.value = t("error.copyPath", { error: String(e) })));
 }
 
 /**
@@ -81,25 +82,25 @@ export async function showTreeMenu(node?: TreeNode, parent?: Folder) {
     const root = rootPath.value;
     if (!root) return;
     items = [
-      { text: "New note", icon: "filePlus", action: () => createFile(null) },
-      { text: "New folder", icon: "folderPlus", action: () => createFolder(null) },
+      { text: t("menu.newNote"), icon: "filePlus", action: () => createFile(null) },
+      { text: t("menu.newFolder"), icon: "folderPlus", action: () => createFolder(null) },
       separator,
-      { text: revealLabel, icon: "folderOpen", action: () => reveal(root) },
-      { text: "Reload folder", icon: "refresh", action: () => refresh() },
+      { text: t(revealKey), icon: "folderOpen", action: () => reveal(root) },
+      { text: t("menu.reloadFolder"), icon: "refresh", action: () => refresh() },
     ];
   } else {
     // New items go inside a folder, or next to a note.
     const target = node.kind === "folder" ? node : (parent ?? null);
     items = [
-      ...(node.kind === "file" ? [{ text: "Open", icon: "file", action: () => selectFile(node) }, separator] : []),
-      { text: "New note", icon: "filePlus", action: () => createFile(target) },
-      { text: "New folder", icon: "folderPlus", action: () => createFolder(target) },
+      ...(node.kind === "file" ? [{ text: t("menu.open"), icon: "file", action: () => selectFile(node) }, separator] : []),
+      { text: t("menu.newNote"), icon: "filePlus", action: () => createFile(target) },
+      { text: t("menu.newFolder"), icon: "folderPlus", action: () => createFolder(target) },
       separator,
-      { text: "Rename…", icon: "pen", action: () => (renamingId.value = node.id) },
-      { text: revealLabel, icon: "folderOpen", action: () => reveal(node.id) },
-      { text: "Copy path", icon: "copy", action: () => copyPath(node.id) },
+      { text: t("menu.rename"), icon: "pen", action: () => (renamingId.value = node.id) },
+      { text: t(revealKey), icon: "folderOpen", action: () => reveal(node.id) },
+      { text: t("menu.copyPath"), icon: "copy", action: () => copyPath(node.id) },
       separator,
-      { text: "Move to Trash", icon: "trash", action: () => trashNode(node) },
+      { text: t("menu.trash"), icon: "trash", action: () => trashNode(node) },
     ];
   }
   // Items passed to `Menu.new` as plain options lose their `action` handler once the menu is
