@@ -7,7 +7,6 @@ import FormatToolbar from "./components/FormatToolbar.vue";
 import Icon from "./components/Icon.vue";
 import MarkdownEditor from "./components/MarkdownEditor.vue";
 import SettingsView from "./components/SettingsView.vue";
-import { resolvedMode, settings } from "./data/settings";
 import { t, type MessageKey } from "./i18n";
 import { resetZoom, resolvedMode, settings, ZOOM_MAX, ZOOM_MIN, zoomIn, zoomOut } from "./data/settings";
 import { showTreeMenu } from "./data/treeMenu";
