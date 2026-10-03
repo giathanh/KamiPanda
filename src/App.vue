@@ -586,11 +586,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   min-width: 0;
   overflow-y: auto;
   padding: 28px 40px 80px;
-  font-family: var(--font-doc);
+  font-family: var(--editor-font, var(--font-doc));
   font-size: 18px;
-  line-height: 1.55;
+  line-height: var(--editor-line-height, 1.55);
   user-select: text;
-  zoom: var(--editor-zoom, 1);
+  zoom: calc(var(--editor-zoom, 1) * var(--editor-font-scale, 1));
 }
 
 .preview :deep(h1) {

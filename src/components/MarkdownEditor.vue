@@ -93,9 +93,9 @@ watch(
   (mode) => view.value?.dispatch({ effects: modeCompartment.reconfigure(modeExtension(mode)) }),
 );
 
-// Zoom only changes a CSS variable, so tell CodeMirror its line heights are stale.
+// Zoom and typography only change CSS variables, so tell CodeMirror its line heights are stale.
 watch(
-  () => settings.editorZoom,
+  () => [settings.editorZoom, settings.fontSize, settings.fontFamily, settings.lineSpacing, settings.contentWidth],
   () => requestAnimationFrame(() => view.value?.requestMeasure()),
 );
 

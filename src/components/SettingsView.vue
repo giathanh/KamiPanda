@@ -5,10 +5,18 @@ import {
   clearOverride,
   colorGroups,
   effectiveColors,
+  FONT_SIZE_DEFAULT,
+  FONT_SIZE_MAX,
+  FONT_SIZE_MIN,
   resetColors,
+  resetEditorSettings,
   resolvedMode,
+  setFontSize,
   setOverride,
   settings,
+  type ContentWidth,
+  type EditorFont,
+  type LineSpacing,
   type ThemePreference,
 } from "../data/settings";
 import { languages, t, type LanguagePreference, type MessageKey } from "../i18n";
@@ -23,6 +31,33 @@ const themes: { id: ThemePreference; label: MessageKey }[] = [
   { id: "dark", label: "settings.dark" },
   { id: "system", label: "settings.system" },
 ];
+
+const fonts: { id: EditorFont; label: MessageKey; family: string }[] = [
+  { id: "serif", label: "settings.fontSerif", family: "var(--font-doc)" },
+  { id: "sans", label: "settings.fontSans", family: "var(--font-ui)" },
+  { id: "mono", label: "settings.fontMono", family: "var(--font-mono)" },
+];
+
+const lineSpacings: { id: LineSpacing; label: MessageKey }[] = [
+  { id: "compact", label: "settings.lineCompact" },
+  { id: "normal", label: "settings.lineNormal" },
+  { id: "relaxed", label: "settings.lineRelaxed" },
+];
+
+const contentWidths: { id: ContentWidth; label: MessageKey }[] = [
+  { id: "narrow", label: "settings.widthNarrow" },
+  { id: "medium", label: "settings.widthMedium" },
+  { id: "wide", label: "settings.widthWide" },
+  { id: "full", label: "settings.widthFull" },
+];
+
+const editorChanged = computed(
+  () =>
+    settings.fontSize !== FONT_SIZE_DEFAULT ||
+    settings.fontFamily !== "serif" ||
+    settings.lineSpacing !== "normal" ||
+    settings.contentWidth !== "medium",
+);
 
 const languageOptions = computed<{ id: LanguagePreference; label: string }[]>(() => [
   { id: "system", label: t("settings.system") },
@@ -119,6 +154,72 @@ const updateLabel = computed(() => {
                   {{ opt ? t("settings.on") : t("settings.off") }}
                 </button>
               </div>
+            </div>
+            <div class="row">
+              <div class="row-text">
+                <span class="row-title">{{ t("settings.fontSize") }}</span>
+                <span class="row-sub">{{ t("settings.fontSizeHint") }}</span>
+              </div>
+              <div role="group" :aria-label="t('settings.fontSize')" class="stepper">
+                <button :aria-label="t('settings.fontSmaller')" :disabled="settings.fontSize <= FONT_SIZE_MIN" @click="setFontSize(settings.fontSize - 1)">−</button>
+                <span class="stepper-value" aria-live="polite">{{ settings.fontSize }} px</span>
+                <button :aria-label="t('settings.fontLarger')" :disabled="settings.fontSize >= FONT_SIZE_MAX" @click="setFontSize(settings.fontSize + 1)">+</button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-text">
+                <span class="row-title">{{ t("settings.font") }}</span>
+                <span class="row-sub">{{ t("settings.fontHint") }}</span>
+              </div>
+              <div role="group" :aria-label="t('settings.font')" class="segmented">
+                <button
+                  v-for="font in fonts"
+                  :key="font.id"
+                  :aria-pressed="settings.fontFamily === font.id"
+                  :class="{ on: settings.fontFamily === font.id }"
+                  :style="{ fontFamily: font.family }"
+                  @click="settings.fontFamily = font.id"
+                >
+                  <Icon v-if="settings.fontFamily === font.id" name="check" :size="16" :stroke-width="2.2" />
+                  {{ t(font.label) }}
+                </button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-text">
+                <span class="row-title">{{ t("settings.lineSpacing") }}</span>
+              </div>
+              <div role="group" :aria-label="t('settings.lineSpacing')" class="segmented">
+                <button
+                  v-for="opt in lineSpacings"
+                  :key="opt.id"
+                  :aria-pressed="settings.lineSpacing === opt.id"
+                  :class="{ on: settings.lineSpacing === opt.id }"
+                  @click="settings.lineSpacing = opt.id"
+                >
+                  <Icon v-if="settings.lineSpacing === opt.id" name="check" :size="16" :stroke-width="2.2" />
+                  {{ t(opt.label) }}
+                </button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-text">
+                <span class="row-title">{{ t("settings.contentWidth") }}</span>
+                <span class="row-sub">{{ t("settings.contentWidthHint") }}</span>
+              </div>
+              <div class="select">
+                <select v-model="settings.contentWidth" :aria-label="t('settings.contentWidth')">
+                  <option v-for="opt in contentWidths" :key="opt.id" :value="opt.id">{{ t(opt.label) }}</option>
+                </select>
+                <Icon name="chevronDown" :size="18" :stroke-width="2" />
+              </div>
+            </div>
+            <p class="sample" :style="{ fontSize: `${settings.fontSize}px` }">{{ t("settings.sampleText") }}</p>
+            <div class="card-footer">
+              <button class="tonal" :disabled="!editorChanged" @click="resetEditorSettings()">
+                <Icon name="reset" :size="18" />
+                {{ t("settings.resetEditor") }}
+              </button>
             </div>
           </div>
         </section>
@@ -421,6 +522,55 @@ h3 {
   right: 14px;
   pointer-events: none;
   color: var(--md-on-surface-variant);
+}
+
+/* Number stepper — same pill shape as the status bar zoom control. */
+.stepper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 36px;
+  border-radius: 18px;
+  background: var(--md-surface-container);
+}
+
+.stepper button {
+  width: 40px;
+  height: 36px;
+  border-radius: 18px;
+  font-size: 18px;
+  color: var(--md-on-surface);
+}
+
+.stepper button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+}
+
+.stepper button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.stepper-value {
+  min-width: 52px;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Live sample of the editor typography. */
+.sample {
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--md-surface-lowest);
+  font-family: var(--editor-font, var(--font-doc));
+  line-height: var(--editor-line-height, 1.55);
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* ---- Accent swatches ---- */
