@@ -4,6 +4,16 @@ Lịch sử các bản phát hành của KamiPanda. Nội dung của mỗi phiê
 
 Đây là bản gốc (tiếng Việt). Bản dịch: [English](CHANGELOG.en.md) · [简体中文](CHANGELOG.zh.md) · [日本語](CHANGELOG.ja.md). Mỗi phiên bản phải có mục tương ứng trong cả 4 file; app hiển thị release notes theo ngôn ngữ người dùng chọn.
 
+## [1.4.0] - 2026-10-03
+
+### Thêm mới
+- Đa ngôn ngữ: giao diện có tiếng Anh, tiếng Việt, tiếng Trung giản thể và tiếng Nhật. Chọn trong Settings → Giao diện → Ngôn ngữ (mặc định theo ngôn ngữ hệ thống). Release notes trong hộp thoại cập nhật cũng hiển thị theo ngôn ngữ đã chọn.
+- Thu phóng: phóng to / thu nhỏ trình soạn thảo và bản xem trước (50% – 200%) bằng nút trên thanh trạng thái hoặc phím tắt ⌘+ / ⌘− / ⌘0.
+- Tuỳ chỉnh trình soạn thảo trong Settings → Trình soạn thảo: cỡ chữ, phông chữ (có chân / không chân / đơn cách), giãn dòng và độ rộng nội dung, kèm đoạn văn mẫu để xem trước và nút đặt lại mặc định.
+
+### Sửa lỗi
+- Lỗi quyền truy cập khi mở app trên macOS.
+
 ## [1.3.0] - 2026-10-01
 
 ### Thêm mới

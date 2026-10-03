@@ -2,6 +2,16 @@
 
 KamiPanda release history (English). The Vietnamese [CHANGELOG.md](CHANGELOG.md) is the source; each version here must match it.
 
+## [1.4.0] - 2026-10-03
+
+### Added
+- Multiple languages: the interface is available in English, Vietnamese, Simplified Chinese and Japanese. Choose one in Settings → Appearance → Language (follows the system language by default). Release notes in the update dialog also appear in the chosen language.
+- Zoom: zoom the editor and preview in or out (50% – 200%) with the buttons in the status bar or the ⌘+ / ⌘− / ⌘0 shortcuts.
+- Editor options in Settings → Editor: font size, font (serif / sans / mono), line spacing and content width, with a sample paragraph to preview and a button to restore the defaults.
+
+### Fixed
+- Permission error when opening the app on macOS.
+
 ## [1.3.0] - 2026-10-01
 
 ### Added
