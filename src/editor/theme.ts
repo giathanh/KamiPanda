@@ -2,8 +2,11 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { tags as t } from "@lezer/highlight";
 
-/** Scales a pixel size by the editor zoom level (set as --editor-zoom in data/settings.ts). */
-const z = (px: number) => `calc(${px}px * var(--editor-zoom, 1))`;
+/**
+ * Scales a pixel size by the editor zoom level and the font size chosen in Settings
+ * (set as --editor-zoom and --editor-font-scale in data/settings.ts).
+ */
+const z = (px: number) => `calc(${px}px * var(--editor-zoom, 1) * var(--editor-font-scale, 1))`;
 
 // All colors come from the CSS custom properties in styles/theme.css, so the
 // editor follows the light/dark switch without being reconfigured.
@@ -17,11 +20,11 @@ export const editorTheme = EditorView.theme({
   "&.cm-focused": { outline: "none" },
   ".cm-scroller": {
     fontFamily: "var(--font-mono)",
-    lineHeight: "1.7",
+    lineHeight: "calc(var(--editor-line-height, 1.55) + 0.15)",
     overflow: "auto",
   },
   ".cm-content": {
-    maxWidth: z(760),
+    maxWidth: "var(--editor-max-width, 728px)",
     margin: "0 auto",
     padding: "28px 24px 120px",
     caretColor: "var(--md-primary)",
@@ -35,11 +38,10 @@ export const editorTheme = EditorView.theme({
 
   // ---- Live preview -----------------------------------------------------
   "&.cm-live .cm-scroller": {
-    fontFamily: "var(--font-doc)",
+    fontFamily: "var(--editor-font, var(--font-doc))",
     fontSize: z(19),
-    lineHeight: "1.55",
+    lineHeight: "var(--editor-line-height, 1.55)",
   },
-  "&.cm-live .cm-content": { maxWidth: z(728) },
   "&.cm-live .cm-md-mark": {
     fontFamily: "var(--font-mono)",
     fontSize: "0.79em",

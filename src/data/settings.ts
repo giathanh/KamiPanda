@@ -3,6 +3,9 @@ import type { LanguagePreference, MessageKey } from "../i18n";
 import { normalizeHex, schemeFromSeed, type Mode } from "../theme/palette";
 
 export type ThemePreference = Mode | "system";
+export type EditorFont = "serif" | "sans" | "mono";
+export type LineSpacing = "compact" | "normal" | "relaxed";
+export type ContentWidth = "narrow" | "medium" | "wide" | "full";
 
 export interface ColorToken {
   name: string;
@@ -90,6 +93,11 @@ interface StoredSettings {
   language: LanguagePreference;
   /** Scale factor for the editor and preview text, adjusted from the status bar. */
   editorZoom: number;
+  /** Body text size of the live preview, in px at 100% zoom. Source mode and headings scale with it. */
+  fontSize: number;
+  fontFamily: EditorFont;
+  lineSpacing: LineSpacing;
+  contentWidth: ContentWidth;
 }
 
 const STORAGE_KEY = "kamipanda.settings";
@@ -98,12 +106,31 @@ export const ZOOM_MIN = 0.5;
 export const ZOOM_MAX = 2;
 const ZOOM_STEP = 0.1;
 
+export const FONT_SIZE_MIN = 14;
+export const FONT_SIZE_MAX = 28;
+export const FONT_SIZE_DEFAULT = 19;
+
+const fontStacks: Record<EditorFont, string> = { serif: "var(--font-doc)", sans: "var(--font-ui)", mono: "var(--font-mono)" };
+const lineHeights: Record<LineSpacing, number> = { compact: 1.4, normal: 1.55, relaxed: 1.8 };
+const contentWidths: Record<ContentWidth, number | null> = { narrow: 600, medium: 728, wide: 960, full: null };
+
+function clampFontSize(value: number) {
+  return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, Math.round(value)));
+}
+
+function oneOf<T extends string>(value: unknown, options: Record<T, unknown>, fallback: T): T {
+  return typeof value === "string" && value in options ? (value as T) : fallback;
+}
+
 function clampZoom(value: number) {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 10) / 10));
 }
 
 function load(): StoredSettings {
-  const fallback: StoredSettings = { theme: "light", accent: DEFAULT_ACCENT, overrides: { light: {}, dark: {} }, autoSave: true, language: "system", editorZoom: 1 };
+  const fallback: StoredSettings = {
+    theme: "light", accent: DEFAULT_ACCENT, overrides: { light: {}, dark: {} }, autoSave: true, language: "system", editorZoom: 1,
+    fontSize: FONT_SIZE_DEFAULT, fontFamily: "serif", lineSpacing: "normal", contentWidth: "medium",
+  };
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
     if (!raw) return fallback;
@@ -114,6 +141,10 @@ function load(): StoredSettings {
       autoSave: typeof raw.autoSave === "boolean" ? raw.autoSave : fallback.autoSave,
       language: ["system", "en", "vi", "zh", "ja"].includes(raw.language) ? raw.language : fallback.language,
       editorZoom: typeof raw.editorZoom === "number" ? clampZoom(raw.editorZoom) : fallback.editorZoom,
+      fontSize: typeof raw.fontSize === "number" ? clampFontSize(raw.fontSize) : fallback.fontSize,
+      fontFamily: oneOf(raw.fontFamily, fontStacks, fallback.fontFamily),
+      lineSpacing: oneOf(raw.lineSpacing, lineHeights, fallback.lineSpacing),
+      contentWidth: oneOf(raw.contentWidth, contentWidths, fallback.contentWidth),
     };
   } catch {
     return fallback;
@@ -143,6 +174,11 @@ function apply() {
   const mode = resolvedMode.value;
   root.dataset.theme = mode;
   root.style.setProperty("--editor-zoom", String(settings.editorZoom));
+  root.style.setProperty("--editor-font-scale", String(settings.fontSize / FONT_SIZE_DEFAULT));
+  root.style.setProperty("--editor-font", fontStacks[settings.fontFamily]);
+  root.style.setProperty("--editor-line-height", String(lineHeights[settings.lineSpacing]));
+  const width = contentWidths[settings.contentWidth];
+  root.style.setProperty("--editor-max-width", width === null ? "none" : `${width * settings.editorZoom}px`);
 
   const vars: Record<string, string> = {
     ...(settings.accent === DEFAULT_ACCENT ? {} : schemeFromSeed(settings.accent, mode)),
@@ -188,4 +224,12 @@ export function zoomOut() {
 
 export function resetZoom() {
   settings.editorZoom = 1;
+}
+
+export function setFontSize(value: number) {
+  settings.fontSize = clampFontSize(value);
+}
+
+export function resetEditorSettings() {
+  Object.assign(settings, { fontSize: FONT_SIZE_DEFAULT, fontFamily: "serif", lineSpacing: "normal", contentWidth: "medium" });
 }
