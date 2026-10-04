@@ -1,8 +1,19 @@
-import { computed, reactive, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import type { LanguagePreference, MessageKey } from "../i18n";
 import { normalizeHex, schemeFromSeed, type Mode } from "../theme/palette";
+import {
+  choice,
+  colorSchemeField,
+  createSettingsStore,
+  custom,
+  defineSettings,
+  number,
+  resolveColorScheme,
+  toggle,
+  type ColorSchemePreference,
+} from "../settings-kit";
 
-export type ThemePreference = Mode | "system";
+export type ThemePreference = ColorSchemePreference;
 export type EditorFont = "serif" | "sans" | "mono";
 export type LineSpacing = "compact" | "normal" | "relaxed";
 export type ContentWidth = "narrow" | "medium" | "wide" | "full";
@@ -83,86 +94,50 @@ export const colorGroups: ColorGroup[] = [
   },
 ];
 
-interface StoredSettings {
-  theme: ThemePreference;
-  accent: string;
-  /** Per-mode overrides of individual CSS variables, applied on top of the accent scheme. */
-  overrides: Record<Mode, Record<string, string>>;
-  /** Write edits to disk shortly after typing stops, instead of waiting for ⌘S. */
-  autoSave: boolean;
-  language: LanguagePreference;
-  /** Scale factor for the editor and preview text, adjusted from the status bar. */
-  editorZoom: number;
-  /** Body text size of the live preview, in px at 100% zoom. Source mode and headings scale with it. */
-  fontSize: number;
-  fontFamily: EditorFont;
-  lineSpacing: LineSpacing;
-  contentWidth: ContentWidth;
-}
-
 const STORAGE_KEY = "kamipanda.settings";
-
-export const ZOOM_MIN = 0.5;
-export const ZOOM_MAX = 2;
-const ZOOM_STEP = 0.1;
-
-export const FONT_SIZE_MIN = 14;
-export const FONT_SIZE_MAX = 28;
-export const FONT_SIZE_DEFAULT = 19;
 
 const fontStacks: Record<EditorFont, string> = { serif: "var(--font-doc)", sans: "var(--font-ui)", mono: "var(--font-mono)" };
 const lineHeights: Record<LineSpacing, number> = { compact: 1.4, normal: 1.55, relaxed: 1.8 };
 const contentWidths: Record<ContentWidth, number | null> = { narrow: 600, medium: 728, wide: 960, full: null };
 
-function clampFontSize(value: number) {
-  return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, Math.round(value)));
-}
+const keysOf = <T extends string>(record: Record<T, unknown>) => Object.keys(record) as T[];
 
-function oneOf<T extends string>(value: unknown, options: Record<T, unknown>, fallback: T): T {
-  return typeof value === "string" && value in options ? (value as T) : fallback;
-}
+const schema = defineSettings({
+  theme: colorSchemeField("light"),
+  accent: custom(DEFAULT_ACCENT, (raw) => (typeof raw === "string" ? normalizeHex(raw) : null) ?? undefined),
+  /** Per-mode overrides of individual CSS variables, applied on top of the accent scheme. */
+  overrides: custom<Record<Mode, Record<string, string>>>({ light: {}, dark: {} }, (raw: any) => ({
+    light: { ...raw?.light },
+    dark: { ...raw?.dark },
+  })),
+  /** Write edits to disk shortly after typing stops, instead of waiting for ⌘S. */
+  autoSave: toggle(true),
+  language: choice<LanguagePreference>(["system", "en", "vi", "zh", "ja"], "system"),
+  /** Scale factor for the editor and preview text, adjusted from the status bar. */
+  editorZoom: number({ min: 0.5, max: 2, step: 0.1, default: 1 }),
+  /** Body text size of the live preview, in px at 100% zoom. Source mode and headings scale with it. */
+  fontSize: number({ min: 14, max: 28, default: 19 }),
+  fontFamily: choice(keysOf(fontStacks), "serif"),
+  lineSpacing: choice(keysOf(lineHeights), "normal"),
+  contentWidth: choice(keysOf(contentWidths), "medium"),
+});
 
-function clampZoom(value: number) {
-  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 10) / 10));
-}
+export const store = createSettingsStore(schema, { key: STORAGE_KEY });
+export const settings = store.settings;
 
-function load(): StoredSettings {
-  const fallback: StoredSettings = {
-    theme: "light", accent: DEFAULT_ACCENT, overrides: { light: {}, dark: {} }, autoSave: true, language: "system", editorZoom: 1,
-    fontSize: FONT_SIZE_DEFAULT, fontFamily: "serif", lineSpacing: "normal", contentWidth: "medium",
-  };
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
-    if (!raw) return fallback;
-    return {
-      theme: ["light", "dark", "system"].includes(raw.theme) ? raw.theme : fallback.theme,
-      accent: normalizeHex(raw.accent ?? "") ?? fallback.accent,
-      overrides: { light: { ...raw.overrides?.light }, dark: { ...raw.overrides?.dark } },
-      autoSave: typeof raw.autoSave === "boolean" ? raw.autoSave : fallback.autoSave,
-      language: ["system", "en", "vi", "zh", "ja"].includes(raw.language) ? raw.language : fallback.language,
-      editorZoom: typeof raw.editorZoom === "number" ? clampZoom(raw.editorZoom) : fallback.editorZoom,
-      fontSize: typeof raw.fontSize === "number" ? clampFontSize(raw.fontSize) : fallback.fontSize,
-      fontFamily: oneOf(raw.fontFamily, fontStacks, fallback.fontFamily),
-      lineSpacing: oneOf(raw.lineSpacing, lineHeights, fallback.lineSpacing),
-      contentWidth: oneOf(raw.contentWidth, contentWidths, fallback.contentWidth),
-    };
-  } catch {
-    return fallback;
-  }
-}
+export const ZOOM_MIN = schema.editorZoom.min;
+export const ZOOM_MAX = schema.editorZoom.max;
 
-export const settings = reactive<StoredSettings>(load());
+export const FONT_SIZE_MIN = schema.fontSize.min;
+export const FONT_SIZE_MAX = schema.fontSize.max;
+export const FONT_SIZE_DEFAULT = schema.fontSize.default;
 
-const systemDark = ref(false);
-const media = window.matchMedia?.("(prefers-color-scheme: dark)");
-if (media) {
-  systemDark.value = media.matches;
-  media.addEventListener("change", (e) => (systemDark.value = e.matches));
-}
+/** Settings restored by the "Reset editor settings" button. */
+export const editorKeys = ["fontSize", "fontFamily", "lineSpacing", "contentWidth"] as const;
+/** Settings restored by the "Reset all colors" button. */
+export const colorKeys = ["accent", "overrides"] as const;
 
-export const resolvedMode = computed<Mode>(() =>
-  settings.theme === "system" ? (systemDark.value ? "dark" : "light") : settings.theme,
-);
+export const resolvedMode = resolveColorScheme(() => settings.theme);
 
 /** Effective value of every editable color in the current mode, read back after applying. */
 export const effectiveColors = ref<Record<string, string>>({});
@@ -195,10 +170,7 @@ function apply() {
   );
 }
 
-watch([settings, resolvedMode], () => {
-  apply();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-}, { deep: true, immediate: true });
+watch([settings, resolvedMode], apply, { deep: true, immediate: true });
 
 export function setOverride(name: string, value: string) {
   const hex = normalizeHex(value);
@@ -210,26 +182,21 @@ export function clearOverride(name: string) {
 }
 
 export function resetColors() {
-  settings.accent = DEFAULT_ACCENT;
-  settings.overrides = { light: {}, dark: {} };
+  store.reset([...colorKeys]);
 }
 
 export function zoomIn() {
-  settings.editorZoom = clampZoom(settings.editorZoom + ZOOM_STEP);
+  settings.editorZoom = schema.editorZoom.clamp(settings.editorZoom + schema.editorZoom.step);
 }
 
 export function zoomOut() {
-  settings.editorZoom = clampZoom(settings.editorZoom - ZOOM_STEP);
+  settings.editorZoom = schema.editorZoom.clamp(settings.editorZoom - schema.editorZoom.step);
 }
 
 export function resetZoom() {
-  settings.editorZoom = 1;
-}
-
-export function setFontSize(value: number) {
-  settings.fontSize = clampFontSize(value);
+  store.reset(["editorZoom"]);
 }
 
 export function resetEditorSettings() {
-  Object.assign(settings, { fontSize: FONT_SIZE_DEFAULT, fontFamily: "serif", lineSpacing: "normal", contentWidth: "medium" });
+  store.reset([...editorKeys]);
 }

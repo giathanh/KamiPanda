@@ -1,0 +1,28 @@
+/*
+ * Shared classes for content the host app puts inside the kit's components.
+ * Colors come from the host's Material 3 tokens (--md-*); see README.md.
+ */
+.sk-hint {
+  margin: 0;
+  color: var(--md-on-surface-variant);
+  line-height: 1.45;
+}
+
+/* Tonal button for secondary actions such as "Reset". */
+.sk-tonal {
+  height: 40px;
+  padding: 0 20px 0 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-weight: 600;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+.sk-tonal:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
