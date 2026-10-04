@@ -42,7 +42,23 @@
 
 ## Cài đặt
 
-Tải bản cài đặt cho macOS (Universal) hoặc Windows tại trang [Releases](https://github.com/giathanh/KamiPanda/releases).
+### macOS (khuyên dùng: Homebrew)
+
+```bash
+brew install --cask giathanh/tap/kamipanda
+```
+
+Cài qua Homebrew thì mở app được ngay, không cần vào *System Settings → Privacy & Security → Open Anyway*. Các bản mới được app tự cập nhật.
+
+Nếu tải file `.dmg` từ trang [Releases](https://github.com/giathanh/KamiPanda/releases), sau khi kéo app vào Applications hãy chạy lệnh dưới đây (hoặc bấm *Open Anyway* trong System Settings), vì app chưa được Apple notarize:
+
+```bash
+xattr -cr /Applications/KamiPanda.app
+```
+
+### Windows
+
+Tải bản cài đặt (`.exe` hoặc `.msi`) tại trang [Releases](https://github.com/giathanh/KamiPanda/releases).
 
 ## Phát triển
 
