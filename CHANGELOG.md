@@ -4,6 +4,11 @@ Lịch sử các bản phát hành của KamiPanda. Nội dung của mỗi phiê
 
 Đây là bản gốc (tiếng Việt). Bản dịch: [English](CHANGELOG.en.md) · [简体中文](CHANGELOG.zh.md) · [日本語](CHANGELOG.ja.md). Mỗi phiên bản phải có mục tương ứng trong cả 4 file; app hiển thị release notes theo ngôn ngữ người dùng chọn.
 
+## [1.6.0] - 2026-10-04
+
+### Thêm mới
+- Cài đặt trên macOS qua Homebrew: `brew install --cask giathanh/tap/kamipanda`. App mở được ngay, không cần vào System Settings → Privacy & Security → Open Anyway.
+
 ## [1.5.0] - 2026-10-04
 
 ### Sửa lỗi

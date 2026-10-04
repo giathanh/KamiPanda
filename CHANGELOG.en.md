@@ -2,6 +2,11 @@
 
 KamiPanda release history (English). The Vietnamese [CHANGELOG.md](CHANGELOG.md) is the source; each version here must match it.
 
+## [1.6.0] - 2026-10-04
+
+### Added
+- Install on macOS with Homebrew: `brew install --cask giathanh/tap/kamipanda`. The app opens right away, without going to System Settings → Privacy & Security → Open Anyway.
+
 ## [1.5.0] - 2026-10-04
 
 ### Fixed

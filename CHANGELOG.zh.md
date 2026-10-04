@@ -2,6 +2,11 @@
 
 KamiPanda 版本历史（简体中文）。以越南语版 [CHANGELOG.md](CHANGELOG.md) 为准，各版本内容需与其一致。
 
+## [1.6.0] - 2026-10-04
+
+### 新增
+- 可在 macOS 上通过 Homebrew 安装：`brew install --cask giathanh/tap/kamipanda`。安装后可直接打开应用，无需前往“系统设置 → 隐私与安全性 → 仍要打开”。
+
 ## [1.5.0] - 2026-10-04
 
 ### 修复
