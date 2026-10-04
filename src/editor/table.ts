@@ -2,7 +2,7 @@ import { isolateHistory, redo, undo } from "@codemirror/commands";
 import { syntaxTree } from "@codemirror/language";
 import { type EditorState, type Range, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
-import { marked } from "marked";
+import { renderInlineMarkdown as renderInline } from "./markdown";
 import { t } from "../i18n";
 
 /*
@@ -71,10 +71,6 @@ interface TableDOM extends HTMLElement {
   widget: TableWidget;
   /** Cell to focus after the next render. */
   pendingFocus?: CellFocus;
-}
-
-function renderInline(text: string) {
-  return marked.parseInline(text, { gfm: true }) as string;
 }
 
 function placeCaretAtEnd(el: HTMLElement) {
