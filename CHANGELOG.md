@@ -4,6 +4,12 @@ Lịch sử các bản phát hành của KamiPanda. Nội dung của mỗi phiê
 
 Đây là bản gốc (tiếng Việt). Bản dịch: [English](CHANGELOG.en.md) · [简体中文](CHANGELOG.zh.md) · [日本語](CHANGELOG.ja.md). Mỗi phiên bản phải có mục tương ứng trong cả 4 file; app hiển thị release notes theo ngôn ngữ người dùng chọn.
 
+## [1.5.0] - 2026-10-04
+
+### Sửa lỗi
+- Bảo mật: HTML trong ghi chú Markdown được làm sạch trước khi hiển thị ở bản xem trước và trong bảng, chặn script và mã độc nhúng trong file. Thuộc tính `style`, `id` và các thẻ form không còn được hiển thị.
+- Mở thư mục có liên kết tượng trưng (symlink) trỏ vòng hoặc quá lớn / quá sâu không còn làm treo app; app báo lỗi thay vì quét vô hạn.
+
 ## [1.4.0] - 2026-10-03
 
 ### Thêm mới

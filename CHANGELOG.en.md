@@ -2,6 +2,12 @@
 
 KamiPanda release history (English). The Vietnamese [CHANGELOG.md](CHANGELOG.md) is the source; each version here must match it.
 
+## [1.5.0] - 2026-10-04
+
+### Fixed
+- Security: HTML in Markdown notes is now sanitized before it is shown in the preview and in tables, blocking scripts and malicious code embedded in files. `style` and `id` attributes and form elements are no longer rendered.
+- Opening a folder that contains circular symbolic links (symlinks), or one that is too large or too deep, no longer freezes the app; it shows an error instead of scanning endlessly.
+
 ## [1.4.0] - 2026-10-03
 
 ### Added
