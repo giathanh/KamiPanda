@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { EditorSelection } from "@codemirror/state";
-import { marked } from "marked";
+import { renderMarkdown } from "./editor/markdown";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import FileTree from "./components/FileTree.vue";
 import FormatToolbar from "./components/FormatToolbar.vue";
@@ -63,7 +63,7 @@ const words = computed(() => {
 const readMinutes = computed(() => Math.max(1, Math.round(words.value / 200)));
 
 const previewHtml = computed(() =>
-  mode.value === "split" && activeFile.value ? (marked.parse(activeFile.value.content, { gfm: true }) as string) : "",
+  mode.value === "split" && activeFile.value ? renderMarkdown(activeFile.value.content) : "",
 );
 
 const outline = computed(() => {
@@ -277,7 +277,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
             @format="format = $event"
           />
         </div>
-        <!-- Content is the user's own local document. -->
+        <!-- Rendered note HTML is sanitized before entering the app DOM. -->
         <article v-if="mode === 'split'" class="preview" v-html="previewHtml" />
 
         <div v-if="mode === 'live'" class="toolbar-dock">
