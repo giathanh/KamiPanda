@@ -4,71 +4,76 @@ import {
   accentPresets,
   clearOverride,
   colorGroups,
+  colorKeys,
+  editorKeys,
   effectiveColors,
-  FONT_SIZE_DEFAULT,
-  FONT_SIZE_MAX,
-  FONT_SIZE_MIN,
   resetColors,
   resetEditorSettings,
   resolvedMode,
-  setFontSize,
   setOverride,
   settings,
+  store,
   type ContentWidth,
   type EditorFont,
   type LineSpacing,
   type ThemePreference,
 } from "../data/settings";
-import { languages, t, type LanguagePreference, type MessageKey } from "../i18n";
+import { languages, t, type LanguagePreference } from "../i18n";
 import { appVersion, checkForUpdates, lastResult, updateProgress, updateStatus } from "../data/updater";
 import { normalizeHex } from "../theme/palette";
+import {
+  NumberStepper,
+  SegmentedControl,
+  SelectControl,
+  SettingsCard,
+  SettingsLayout,
+  SettingsRow,
+  SettingsSection,
+} from "../settings-kit";
 import Icon from "./Icon.vue";
 
 defineEmits<{ close: [] }>();
 
-const themes: { id: ThemePreference; label: MessageKey }[] = [
-  { id: "light", label: "settings.light" },
-  { id: "dark", label: "settings.dark" },
-  { id: "system", label: "settings.system" },
-];
-
-const fonts: { id: EditorFont; label: MessageKey; family: string }[] = [
-  { id: "serif", label: "settings.fontSerif", family: "var(--font-doc)" },
-  { id: "sans", label: "settings.fontSans", family: "var(--font-ui)" },
-  { id: "mono", label: "settings.fontMono", family: "var(--font-mono)" },
-];
-
-const lineSpacings: { id: LineSpacing; label: MessageKey }[] = [
-  { id: "compact", label: "settings.lineCompact" },
-  { id: "normal", label: "settings.lineNormal" },
-  { id: "relaxed", label: "settings.lineRelaxed" },
-];
-
-const contentWidths: { id: ContentWidth; label: MessageKey }[] = [
-  { id: "narrow", label: "settings.widthNarrow" },
-  { id: "medium", label: "settings.widthMedium" },
-  { id: "wide", label: "settings.widthWide" },
-  { id: "full", label: "settings.widthFull" },
-];
-
-const editorChanged = computed(
-  () =>
-    settings.fontSize !== FONT_SIZE_DEFAULT ||
-    settings.fontFamily !== "serif" ||
-    settings.lineSpacing !== "normal" ||
-    settings.contentWidth !== "medium",
-);
-
-const languageOptions = computed<{ id: LanguagePreference; label: string }[]>(() => [
-  { id: "system", label: t("settings.system") },
-  ...languages,
+const themes = computed<{ value: ThemePreference; label: string }[]>(() => [
+  { value: "light", label: t("settings.light") },
+  { value: "dark", label: t("settings.dark") },
+  { value: "system", label: t("settings.system") },
 ]);
+
+const onOff = computed(() => [
+  { value: true, label: t("settings.on") },
+  { value: false, label: t("settings.off") },
+]);
+
+const fonts = computed<{ value: EditorFont; label: string; style: Record<string, string> }[]>(() => [
+  { value: "serif", label: t("settings.fontSerif"), style: { fontFamily: "var(--font-doc)" } },
+  { value: "sans", label: t("settings.fontSans"), style: { fontFamily: "var(--font-ui)" } },
+  { value: "mono", label: t("settings.fontMono"), style: { fontFamily: "var(--font-mono)" } },
+]);
+
+const lineSpacings = computed<{ value: LineSpacing; label: string }[]>(() => [
+  { value: "compact", label: t("settings.lineCompact") },
+  { value: "normal", label: t("settings.lineNormal") },
+  { value: "relaxed", label: t("settings.lineRelaxed") },
+]);
+
+const contentWidths = computed<{ value: ContentWidth; label: string }[]>(() => [
+  { value: "narrow", label: t("settings.widthNarrow") },
+  { value: "medium", label: t("settings.widthMedium") },
+  { value: "wide", label: t("settings.widthWide") },
+  { value: "full", label: t("settings.widthFull") },
+]);
+
+const languageOptions = computed<{ value: LanguagePreference; label: string }[]>(() => [
+  { value: "system", label: t("settings.system") },
+  ...languages.map((l) => ({ value: l.id, label: l.label })),
+]);
+
+const editorChanged = computed(() => !store.isDefault([...editorKeys]));
+const hasChanges = computed(() => !store.isDefault([...colorKeys]));
 
 const overrides = computed(() => settings.overrides[resolvedMode.value]);
 const isCustomAccent = computed(() => !accentPresets.some((p) => p.color === settings.accent));
-const hasChanges = computed(
-  () => settings.accent !== accentPresets[0].color || Object.keys({ ...settings.overrides.light, ...settings.overrides.dark }).length > 0,
-);
 
 function setAccent(value: string) {
   const hex = normalizeHex(value);
@@ -90,474 +95,147 @@ const updateLabel = computed(() => {
 </script>
 
 <template>
-  <div class="settings">
-    <header class="pane-header" data-tauri-drag-region>
-      <span class="title" data-tauri-drag-region>{{ t("settings.title") }}</span>
-      <button class="icon-btn" :aria-label="t('settings.close')" :title="t('settings.closeShortcut')" @click="$emit('close')"><Icon name="close" /></button>
-    </header>
+  <SettingsLayout :title="t('settings.title')" :close-label="t('settings.close')" :close-title="t('settings.closeShortcut')" @close="$emit('close')">
+    <SettingsSection :title="t('settings.appearance')">
+      <SettingsCard>
+        <SettingsRow :title="t('settings.theme')" :subtitle="t('settings.themeHint')">
+          <SegmentedControl v-model="settings.theme" :options="themes" :label="t('settings.theme')" />
+        </SettingsRow>
+        <SettingsRow :title="t('settings.language')" :subtitle="t('settings.languageHint')">
+          <SelectControl v-model="settings.language" :options="languageOptions" :label="t('settings.language')" />
+        </SettingsRow>
+      </SettingsCard>
+    </SettingsSection>
 
-    <div class="scroll">
-      <div class="content">
-        <section>
-          <h2>{{ t("settings.appearance") }}</h2>
-          <div class="card">
-            <div class="row">
-              <div class="row-text">
-                <span class="row-title">{{ t("settings.theme") }}</span>
-                <span class="row-sub">{{ t("settings.themeHint") }}</span>
-              </div>
-              <div role="group" :aria-label="t('settings.theme')" class="segmented">
-                <button
-                  v-for="theme in themes"
-                  :key="theme.id"
-                  :aria-pressed="settings.theme === theme.id"
-                  :class="{ on: settings.theme === theme.id }"
-                  @click="settings.theme = theme.id"
-                >
-                  <Icon v-if="settings.theme === theme.id" name="check" :size="16" :stroke-width="2.2" />
-                  {{ t(theme.label) }}
-                </button>
-              </div>
-            </div>
-            <div class="row">
-              <div class="row-text">
-                <span class="row-title">{{ t("settings.language") }}</span>
-                <span class="row-sub">{{ t("settings.languageHint") }}</span>
-              </div>
-              <div class="select">
-                <select v-model="settings.language" :aria-label="t('settings.language')">
-                  <option v-for="opt in languageOptions" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
-                </select>
-                <Icon name="chevronDown" :size="18" :stroke-width="2" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h2>{{ t("settings.editor") }}</h2>
-          <div class="card">
-            <div class="row">
-              <div class="row-text">
-                <span class="row-title">{{ t("settings.autoSave") }}</span>
-                <span class="row-sub">{{ t("settings.autoSaveHint") }}</span>
-              </div>
-              <div role="group" :aria-label="t('settings.autoSave')" class="segmented">
-                <button
-                  v-for="opt in [true, false]"
-                  :key="String(opt)"
-                  :aria-pressed="settings.autoSave === opt"
-                  :class="{ on: settings.autoSave === opt }"
-                  @click="settings.autoSave = opt"
-                >
-                  <Icon v-if="settings.autoSave === opt" name="check" :size="16" :stroke-width="2.2" />
-                  {{ opt ? t("settings.on") : t("settings.off") }}
-                </button>
-              </div>
-            </div>
-            <div class="row">
-              <div class="row-text">
-                <span class="row-title">{{ t("settings.fontSize") }}</span>
-                <span class="row-sub">{{ t("settings.fontSizeHint") }}</span>
-              </div>
-              <div role="group" :aria-label="t('settings.fontSize')" class="stepper">
-                <button :aria-label="t('settings.fontSmaller')" :disabled="settings.fontSize <= FONT_SIZE_MIN" @click="setFontSize(settings.fontSize - 1)">−</button>
-                <span class="stepper-value" aria-live="polite">{{ settings.fontSize }} px</span>
-                <button :aria-label="t('settings.fontLarger')" :disabled="settings.fontSize >= FONT_SIZE_MAX" @click="setFontSize(settings.fontSize + 1)">+</button>
-              </div>
-            </div>
-            <div class="row">
-              <div class="row-text">
-                <span class="row-title">{{ t("settings.font") }}</span>
-                <span class="row-sub">{{ t("settings.fontHint") }}</span>
-              </div>
-              <div role="group" :aria-label="t('settings.font')" class="segmented">
-                <button
-                  v-for="font in fonts"
-                  :key="font.id"
-                  :aria-pressed="settings.fontFamily === font.id"
-                  :class="{ on: settings.fontFamily === font.id }"
-                  :style="{ fontFamily: font.family }"
-                  @click="settings.fontFamily = font.id"
-                >
-                  <Icon v-if="settings.fontFamily === font.id" name="check" :size="16" :stroke-width="2.2" />
-                  {{ t(font.label) }}
-                </button>
-              </div>
-            </div>
-            <div class="row">
-              <div class="row-text">
-                <span class="row-title">{{ t("settings.lineSpacing") }}</span>
-              </div>
-              <div role="group" :aria-label="t('settings.lineSpacing')" class="segmented">
-                <button
-                  v-for="opt in lineSpacings"
-                  :key="opt.id"
-                  :aria-pressed="settings.lineSpacing === opt.id"
-                  :class="{ on: settings.lineSpacing === opt.id }"
-                  @click="settings.lineSpacing = opt.id"
-                >
-                  <Icon v-if="settings.lineSpacing === opt.id" name="check" :size="16" :stroke-width="2.2" />
-                  {{ t(opt.label) }}
-                </button>
-              </div>
-            </div>
-            <div class="row">
-              <div class="row-text">
-                <span class="row-title">{{ t("settings.contentWidth") }}</span>
-                <span class="row-sub">{{ t("settings.contentWidthHint") }}</span>
-              </div>
-              <div class="select">
-                <select v-model="settings.contentWidth" :aria-label="t('settings.contentWidth')">
-                  <option v-for="opt in contentWidths" :key="opt.id" :value="opt.id">{{ t(opt.label) }}</option>
-                </select>
-                <Icon name="chevronDown" :size="18" :stroke-width="2" />
-              </div>
-            </div>
-            <p class="sample" :style="{ fontSize: `${settings.fontSize}px` }">{{ t("settings.sampleText") }}</p>
-            <div class="card-footer">
-              <button class="tonal" :disabled="!editorChanged" @click="resetEditorSettings()">
-                <Icon name="reset" :size="18" />
-                {{ t("settings.resetEditor") }}
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h2>{{ t("settings.updates") }}</h2>
-          <div class="card">
-            <div class="row">
-              <div class="row-text">
-                <span class="row-title">KamiPanda {{ appVersion }}</span>
-                <span class="row-sub">{{ lastResult ? t(lastResult.key, lastResult.params) : t("update.autoCheck") }}</span>
-              </div>
-              <button class="tonal" :disabled="updateStatus === 'checking' || updateStatus === 'downloading'" @click="checkForUpdates()">
-                <Icon name="reset" :size="18" />
-                {{ updateLabel }}
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h2>{{ t("settings.accent") }}</h2>
-          <div class="card">
-            <p class="hint">{{ t("settings.accentHint") }}</p>
-            <div class="swatches" role="radiogroup" :aria-label="t('settings.accent')">
-              <button
-                v-for="p in accentPresets"
-                :key="p.color"
-                role="radio"
-                class="swatch"
-                :aria-checked="settings.accent === p.color"
-                :aria-label="t(p.name)"
-                :title="t(p.name)"
-                :style="{ '--swatch': p.color }"
-                @click="settings.accent = p.color"
-              >
-                <Icon v-if="settings.accent === p.color" name="check" :size="18" :stroke-width="2.6" />
-              </button>
-              <label
-                class="swatch custom"
-                :class="{ selected: isCustomAccent }"
-                :style="isCustomAccent ? { '--swatch': settings.accent } : undefined"
-                :title="t('settings.customColor')"
-              >
-                <Icon :name="isCustomAccent ? 'check' : 'plus'" :size="18" :stroke-width="2.4" />
-                <input type="color" :aria-label="t('settings.customAccent')" :value="settings.accent" @input="setAccent(($event.target as HTMLInputElement).value)" />
-              </label>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <div class="section-head">
-            <h2>{{ t("settings.customize") }}</h2>
-            <span class="badge">{{ resolvedMode === "dark" ? t("settings.darkBadge") : t("settings.lightBadge") }}</span>
-          </div>
-          <p class="hint outside">
-            {{ resolvedMode === "dark" ? t("settings.customizeHintDark") : t("settings.customizeHintLight") }}
-          </p>
-          <div v-for="group in colorGroups" :key="group.label" class="card list">
-            <h3>{{ t(group.label) }}</h3>
-            <div v-for="token in group.tokens" :key="token.name" class="color-row">
-              <label class="color-well" :style="{ background: effectiveColors[token.name] }">
-                <input
-                  type="color"
-                  :aria-label="t(token.label)"
-                  :value="effectiveColors[token.name]"
-                  @input="setOverride(token.name, ($event.target as HTMLInputElement).value)"
-                />
-              </label>
-              <div class="row-text">
-                <span class="row-title">{{ t(token.label) }}</span>
-                <span class="row-sub mono">{{ token.name }}</span>
-              </div>
-              <input
-                class="hex"
-                spellcheck="false"
-                :aria-label="t('settings.hexValue', { name: t(token.label) })"
-                :value="effectiveColors[token.name]"
-                @change="commitHex(token.name, $event)"
-                @keydown.enter="($event.target as HTMLInputElement).blur()"
-              />
-              <button
-                class="icon-btn sm"
-                :class="{ hidden: !overrides[token.name] }"
-                :aria-label="t('settings.resetToken', { name: t(token.label) })"
-                :title="t('settings.reset')"
-                :disabled="!overrides[token.name]"
-                @click="clearOverride(token.name)"
-              >
-                <Icon name="reset" :size="18" />
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <div class="footer">
-          <button class="tonal" :disabled="!hasChanges" @click="resetColors()">
+    <SettingsSection :title="t('settings.editor')">
+      <SettingsCard>
+        <SettingsRow :title="t('settings.autoSave')" :subtitle="t('settings.autoSaveHint')">
+          <SegmentedControl v-model="settings.autoSave" :options="onOff" :label="t('settings.autoSave')" />
+        </SettingsRow>
+        <SettingsRow :title="t('settings.fontSize')" :subtitle="t('settings.fontSizeHint')">
+          <NumberStepper
+            v-model="settings.fontSize"
+            :field="store.schema.fontSize"
+            :label="t('settings.fontSize')"
+            :decrease-label="t('settings.fontSmaller')"
+            :increase-label="t('settings.fontLarger')"
+            :format="(n) => `${n} px`"
+          />
+        </SettingsRow>
+        <SettingsRow :title="t('settings.font')" :subtitle="t('settings.fontHint')">
+          <SegmentedControl v-model="settings.fontFamily" :options="fonts" :label="t('settings.font')" />
+        </SettingsRow>
+        <SettingsRow :title="t('settings.lineSpacing')">
+          <SegmentedControl v-model="settings.lineSpacing" :options="lineSpacings" :label="t('settings.lineSpacing')" />
+        </SettingsRow>
+        <SettingsRow :title="t('settings.contentWidth')" :subtitle="t('settings.contentWidthHint')">
+          <SelectControl v-model="settings.contentWidth" :options="contentWidths" :label="t('settings.contentWidth')" />
+        </SettingsRow>
+        <p class="sample" :style="{ fontSize: `${settings.fontSize}px` }">{{ t("settings.sampleText") }}</p>
+        <template #footer>
+          <button class="sk-tonal" :disabled="!editorChanged" @click="resetEditorSettings()">
             <Icon name="reset" :size="18" />
-            {{ t("settings.resetAll") }}
+            {{ t("settings.resetEditor") }}
+          </button>
+        </template>
+      </SettingsCard>
+    </SettingsSection>
+
+    <SettingsSection :title="t('settings.updates')">
+      <SettingsCard>
+        <SettingsRow
+          :title="`KamiPanda ${appVersion}`"
+          :subtitle="lastResult ? t(lastResult.key, lastResult.params) : t('update.autoCheck')"
+        >
+          <button class="sk-tonal" :disabled="updateStatus === 'checking' || updateStatus === 'downloading'" @click="checkForUpdates()">
+            <Icon name="reset" :size="18" />
+            {{ updateLabel }}
+          </button>
+        </SettingsRow>
+      </SettingsCard>
+    </SettingsSection>
+
+    <SettingsSection :title="t('settings.accent')">
+      <SettingsCard>
+        <p class="sk-hint">{{ t("settings.accentHint") }}</p>
+        <div class="swatches" role="radiogroup" :aria-label="t('settings.accent')">
+          <button
+            v-for="p in accentPresets"
+            :key="p.color"
+            role="radio"
+            class="swatch"
+            :aria-checked="settings.accent === p.color"
+            :aria-label="t(p.name)"
+            :title="t(p.name)"
+            :style="{ '--swatch': p.color }"
+            @click="settings.accent = p.color"
+          >
+            <Icon v-if="settings.accent === p.color" name="check" :size="18" :stroke-width="2.6" />
+          </button>
+          <label
+            class="swatch custom"
+            :class="{ selected: isCustomAccent }"
+            :style="isCustomAccent ? { '--swatch': settings.accent } : undefined"
+            :title="t('settings.customColor')"
+          >
+            <Icon :name="isCustomAccent ? 'check' : 'plus'" :size="18" :stroke-width="2.4" />
+            <input type="color" :aria-label="t('settings.customAccent')" :value="settings.accent" @input="setAccent(($event.target as HTMLInputElement).value)" />
+          </label>
+        </div>
+      </SettingsCard>
+    </SettingsSection>
+
+    <SettingsSection
+      :title="t('settings.customize')"
+      :badge="resolvedMode === 'dark' ? t('settings.darkBadge') : t('settings.lightBadge')"
+      :hint="resolvedMode === 'dark' ? t('settings.customizeHintDark') : t('settings.customizeHintLight')"
+    >
+      <SettingsCard v-for="group in colorGroups" :key="group.label" list :heading="t(group.label)">
+        <div v-for="token in group.tokens" :key="token.name" class="color-row">
+          <label class="color-well" :style="{ background: effectiveColors[token.name] }">
+            <input
+              type="color"
+              :aria-label="t(token.label)"
+              :value="effectiveColors[token.name]"
+              @input="setOverride(token.name, ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+          <div class="row-text">
+            <span class="row-title">{{ t(token.label) }}</span>
+            <span class="row-sub mono">{{ token.name }}</span>
+          </div>
+          <input
+            class="hex"
+            spellcheck="false"
+            :aria-label="t('settings.hexValue', { name: t(token.label) })"
+            :value="effectiveColors[token.name]"
+            @change="commitHex(token.name, $event)"
+            @keydown.enter="($event.target as HTMLInputElement).blur()"
+          />
+          <button
+            class="icon-btn sm"
+            :class="{ hidden: !overrides[token.name] }"
+            :aria-label="t('settings.resetToken', { name: t(token.label) })"
+            :title="t('settings.reset')"
+            :disabled="!overrides[token.name]"
+            @click="clearOverride(token.name)"
+          >
+            <Icon name="reset" :size="18" />
           </button>
         </div>
-      </div>
+      </SettingsCard>
+    </SettingsSection>
+
+    <div class="footer">
+      <button class="sk-tonal" :disabled="!hasChanges" @click="resetColors()">
+        <Icon name="reset" :size="18" />
+        {{ t("settings.resetAll") }}
+      </button>
     </div>
-  </div>
+  </SettingsLayout>
 </template>
 
 <style scoped>
-.settings {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.pane-header {
-  height: 64px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px 0 28px;
-}
-
-.title {
-  flex-grow: 1;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.scroll {
-  flex-grow: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.content {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 8px 24px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-
-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-h2 {
-  margin: 0 0 0 4px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--md-primary);
-  letter-spacing: 0.1px;
-}
-
-h3 {
-  margin: 4px 8px 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--md-on-surface-variant);
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-
-.section-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.badge {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 10px;
-  background: var(--md-secondary-container);
-  color: var(--md-on-secondary-container);
-}
-
-.card {
-  background: var(--md-surface-low);
-  border-radius: 20px;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.card.list {
-  padding: 12px 8px;
-  gap: 0;
-}
-
-.hint {
-  margin: 0;
-  color: var(--md-on-surface-variant);
-  line-height: 1.45;
-}
-
-.hint.outside {
-  margin: -4px 4px 4px;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.row-text {
-  flex-grow: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.row-title {
-  font-weight: 500;
-}
-
-.row-sub {
-  font-size: 12px;
-  color: var(--md-on-surface-variant);
-}
-
-.mono {
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
-
-/* Segmented button — same shape as the editor mode switch. */
-.segmented {
-  display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.segmented button {
-  height: 36px;
-  border-radius: 8px;
-  background: var(--md-surface-container);
-  color: var(--md-on-surface);
-  font-weight: 500;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.segmented button:first-child {
-  border-radius: 18px 8px 8px 18px;
-}
-
-.segmented button:last-child {
-  border-radius: 8px 18px 18px 8px;
-}
-
-.segmented button.on {
-  background: var(--md-primary);
-  color: var(--md-on-primary);
-  font-weight: 600;
-  padding-left: 12px;
-}
-
-/* Dropdown styled like the segmented buttons, with the native menu underneath. */
-.select {
-  position: relative;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  color: var(--md-on-surface);
-}
-
-.select select {
-  appearance: none;
-  height: 36px;
-  min-width: 160px;
-  padding: 0 40px 0 16px;
-  border: 0;
-  border-radius: 18px;
-  background: var(--md-surface-container);
-  color: inherit;
-  font: inherit;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.select select:focus-visible {
-  outline: 2px solid var(--md-primary);
-  outline-offset: 2px;
-}
-
-.select :deep(svg) {
-  position: absolute;
-  right: 14px;
-  pointer-events: none;
-  color: var(--md-on-surface-variant);
-}
-
-/* Number stepper — same pill shape as the status bar zoom control. */
-.stepper {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  height: 36px;
-  border-radius: 18px;
-  background: var(--md-surface-container);
-}
-
-.stepper button {
-  width: 40px;
-  height: 36px;
-  border-radius: 18px;
-  font-size: 18px;
-  color: var(--md-on-surface);
-}
-
-.stepper button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
-}
-
-.stepper button:disabled {
-  opacity: 0.38;
-  cursor: default;
-}
-
-.stepper-value {
-  min-width: 52px;
-  text-align: center;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
 /* Live sample of the editor typography. */
 .sample {
   margin: 0;
@@ -566,11 +244,6 @@ h3 {
   background: var(--md-surface-lowest);
   font-family: var(--editor-font, var(--font-doc));
   line-height: var(--editor-line-height, 1.55);
-}
-
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
 }
 
 /* ---- Accent swatches ---- */
@@ -688,29 +361,31 @@ input[type="color"] {
   visibility: hidden;
 }
 
+/* Text column of a color row. */
+.row-text {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row-title {
+  font-weight: 500;
+}
+
+.row-sub {
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
 .footer {
   display: flex;
   justify-content: flex-end;
-}
-
-.tonal {
-  height: 40px;
-  padding: 0 20px 0 16px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  background: var(--md-secondary-container);
-  color: var(--md-on-secondary-container);
-}
-
-.row .tonal {
-  flex-shrink: 0;
-}
-
-.tonal:disabled {
-  opacity: 0.38;
-  cursor: default;
 }
 </style>
